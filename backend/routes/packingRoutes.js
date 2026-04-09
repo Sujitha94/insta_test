@@ -18,7 +18,7 @@ const SMS_CONFIG = {
 
 // Enhanced Instagram message sending
 async function sendInstagramMessage(igId, userAccessToken, recipientId, messageText1) {
-  const url = `https://graph.instagram.com/v21.0/${igId}/messages`;
+  const url = `https://graph.instagram.com/v23.0/${igId}/messages`;
   const messageTextWithEmoji = " 🤖:" + messageText1;
   const data = {
     recipient: { id: recipientId },
@@ -60,22 +60,39 @@ function formatProductsForPackedSMS(products) {
   try {
     if (products.length === 1) {
       const product = products[0];
-      const productName = product.product_name || product.name || product.title || 'Item';
+      let productName = product.product_name || product.name || product.title || 'Item';
+      
+      // ✅ Add selectedunit to product name if it exists
+      if (product.selectedunit) {
+        productName += ` (${product.selectedunit})`;
+      }
+      
       const quantity = (product.quantity || 1).toString();
       
       console.log('Single product formatted:', { productName, quantity });
       return { productName, quantity };
     } else {
-      // Multiple products - combine names (limit length for SMS)
-      const productNames = products.map(p => p.product_name || p.name || p.title || 'Item');
-      const combinedNames = productNames.length > 2 
-        ? `${productNames.slice(0, 2).join(', ')} +${productNames.length - 2} more`
-        : productNames.join(', ');
+      // Multiple products - show each product with its individual quantity
+      const productDetails = products.map(p => {
+        let name = p.product_name || p.name || p.title || 'Item';
+        // ✅ Add selectedunit to each product name if it exists
+        if (p.selectedunit) {
+          name += ` (${p.selectedunit})`;
+        }
+        const qty = p.quantity || 1;
+        return `${name} x${qty}`;
+      });
       
+      // For SMS, limit the text length
+      const combinedDetails = productDetails.length > 2 
+        ? `${productDetails.slice(0, 2).join(', ')} +${productDetails.length - 2} more`
+        : productDetails.join(', ');
+      
+      // Calculate total quantity for the quantity field
       const totalQty = products.reduce((sum, p) => sum + (parseInt(p.quantity) || 1), 0);
       
-      console.log('Multiple products formatted:', { productName: combinedNames, quantity: totalQty.toString() });
-      return { productName: combinedNames, quantity: totalQty.toString() };
+      console.log('Multiple products formatted:', { productName: combinedDetails, quantity: totalQty.toString() });
+      return { productName: combinedDetails, quantity: totalQty.toString() };
     }
   } catch (error) {
     console.error('Error formatting products:', error);
@@ -209,7 +226,7 @@ async function sendOrderPackedNotification(order) {
     if (latestToken && latestToken.userAccessToken && latestToken.Instagramid) {
       const productData = formatProductsForPackedSMS(order.products);
       
-      const messageText = `📦 Order Packed & Ready! 📦\n\n*Order ID:* ${order.orderId}\n*Products:* ${productData.productName} (Qty: ${productData.quantity})\n*Status:* Packed and Ready for Dispatch\n\nGreat news! Your order has been carefully packed and is ready for shipment. Our team has prepared your items with care.\n\n🚚 Your order will be dispatched soon!\n\nThank you for choosing ${username}!`;
+      const messageText = `📦 Order Packed & Ready! 📦\n\nOrder ID: ${order.orderId}\nProducts: ${productData.productName} (Qty: ${productData.quantity})\nStatus: Packed and Ready for Dispatch\n\nGreat news! Your order has been carefully packed and is ready for shipment. Our team has prepared your items with care.\n\n🚚 Your order will be dispatched soon!\n\nThank you for choosing ${username}!`;
 
       await sendInstagramMessage(
         latestToken.Instagramid,
@@ -304,6 +321,44 @@ router.post('/fetch-products/:orderNumber', async (req, res) => {
       });
     }
 
+    // Handle different order statuses
+    const orderStatus = order.status;
+    let statusMessage = '';
+    let shouldFetchProducts = true;
+    console.log("orderStatus", orderStatus);
+    
+    switch (orderStatus) {
+      case 'CREATED':
+        return res.status(200).json({
+          success: false,
+          showAlert: true,
+          alertType: 'warning',
+          alertMessage: 'Payment confirmation is pending for this order. Please wait for payment completion before proceeding.',
+          shouldFetchProducts: false
+        });
+
+      case 'PROCESSING':
+        statusMessage = "Order label hasn't been printed yet. Please print the shipping label before packing.";
+        break;
+
+      case 'PACKED':
+        statusMessage = 'This order has already been packed and is ready for shipment.';
+        break;
+
+      case 'COMPLETED':
+        statusMessage = 'You already shipped this order';
+        break;
+
+      case 'PRINTED':
+        // No alert needed, just proceed
+        break;
+
+      default:
+        // Handle any other status
+        console.log(`Unknown order status: ${orderStatus}`);
+        break;
+    }
+
     // Extract customer notes
     const customerNote = order.customer_notes || '';
 
@@ -320,7 +375,7 @@ router.post('/fetch-products/:orderNumber', async (req, res) => {
 
     console.log("All order products:", JSON.stringify(order.products, null, 2));
 
-    // Format the products for the frontend
+    // ✅ Enhanced product processing with unit-specific SKU support
     const productsWithDetails = await Promise.all(
       order.products.map(async (orderProduct) => {
         try {
@@ -330,12 +385,45 @@ router.post('/fetch-products/:orderNumber', async (req, res) => {
             tenentId: tenentId,
             productName: orderProduct.product_name
           }).lean();
+
+          let finalSku = orderProduct.sku || 'unknown';
+          let finalImage = '';
+
+          if (productDetail) {
+            // Check if product has unit-specific selection
+            if (orderProduct.selectedunit && productDetail.units && productDetail.units.length > 0) {
+              console.log(`Product ${orderProduct.product_name} has selected unit: ${orderProduct.selectedunit}`);
+              
+              // Find the matching unit
+              const matchingUnit = productDetail.units.find(unit => 
+                unit.unit === orderProduct.selectedunit || 
+                unit.unit.toLowerCase() === orderProduct.selectedunit.toLowerCase()
+              );
+              
+              if (matchingUnit) {
+                finalSku = matchingUnit.sku;
+                finalImage = matchingUnit.imageUrl || productDetail.productPhotoUrl || productDetail.productPhoto || '';
+                console.log(`Using unit-specific SKU: ${finalSku} for unit: ${orderProduct.selectedunit}`);
+              } else {
+                console.warn(`Unit ${orderProduct.selectedunit} not found in product units, using default SKU`);
+                finalSku = productDetail.sku || orderProduct.sku || 'unknown';
+                finalImage = productDetail.productPhotoUrl || productDetail.productPhoto || '';
+              }
+            } else {
+              // Use main product SKU and image
+              finalSku = productDetail.sku || orderProduct.sku || 'unknown';
+              finalImage = productDetail.productPhotoUrl || productDetail.productPhoto || '';
+            }
+          }
+
+          console.log(`Final SKU for ${orderProduct.product_name}: ${finalSku}`);
           
           return {
             name: orderProduct.product_name,
-            sku: orderProduct.sku,
+            sku: finalSku,
             quantity: orderProduct.quantity,
-            image: productDetail ? (productDetail.productPhotoUrl || productDetail.productPhoto || '') : ''
+            selectedunit: orderProduct.selectedunit || null,
+            image: finalImage
           };
         } catch (err) {
           console.error(`Error fetching product details for product: ${orderProduct.product_name}`, err);
@@ -343,6 +431,7 @@ router.post('/fetch-products/:orderNumber', async (req, res) => {
             name: orderProduct.product_name,
             sku: orderProduct.sku || 'unknown',
             quantity: orderProduct.quantity,
+            selectedunit: orderProduct.selectedunit || null,
             image: ''
           };
         }
@@ -357,7 +446,11 @@ router.post('/fetch-products/:orderNumber', async (req, res) => {
       customerNote,
       orderStatus: order.status,
       packingStatus: order.packing_status,
-      isPacked: order.is_packed || false
+      isPacked: order.is_packed || false,
+      showAlert: statusMessage ? true : false,
+      alertType: statusMessage ? 'warning' : null,
+      alertMessage: statusMessage || null,
+      shouldFetchProducts: true
     });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -369,7 +462,6 @@ router.post('/fetch-products/:orderNumber', async (req, res) => {
   }
 });
 
-// ✅ UPDATED: Route to verify SKU inputs and update order status with notification
 router.post('/verify-sku/:orderNumber', async (req, res) => {
   try {
     const { orderNumber } = req.params;
@@ -420,15 +512,24 @@ router.post('/verify-sku/:orderNumber', async (req, res) => {
     }
 
     console.log("Order products for verification:", JSON.stringify(order.products, null, 2));
+    console.log("Current order status:", order.status);
 
-    // Get all SKUs from the order
-    const orderSkus = order.products.flatMap(product => {
-      const sku = product.sku || 'unknown';
-      console.log(`Product ${product.product_name} has SKU: ${sku}`);
-      return Array(product.quantity).fill(sku);
-    });
+    // ✅ Enhanced SKU generation using helper function
+    const orderSkus = [];
+    
+    for (const orderProduct of order.products) {
+      // Use helper function to get correct SKU
+      const productSku = await getProductSku(orderProduct, tenentId);
+      
+      console.log(`Product ${orderProduct.product_name} final SKU: ${productSku}, quantity: ${orderProduct.quantity}`);
+      
+      // Add the SKU for each quantity
+      for (let i = 0; i < orderProduct.quantity; i++) {
+        orderSkus.push(productSku);
+      }
+    }
 
-    console.log("Generated orderSkus:", orderSkus);
+    console.log("Generated orderSkus with unit-specific support:", orderSkus);
 
     // Sort both arrays for comparison
     const sortedOrderSkus = [...orderSkus].sort();
@@ -445,36 +546,74 @@ router.post('/verify-sku/:orderNumber', async (req, res) => {
       sortedOrderSkus.every((sku, index) => sku === sortedInputSkus[index]);
 
     if (!allProductsVerified) {
+      // Provide detailed mismatch information
+      const missing = sortedOrderSkus.filter(sku => !sortedInputSkus.includes(sku));
+      const extra = sortedInputSkus.filter(sku => !sortedOrderSkus.includes(sku));
+      
+      console.log("SKU verification failed:", { missing, extra });
+      
       return res.status(400).json({
         success: false,
-        message: 'Not all products have been verified correctly'
+        message: 'Not all products have been verified correctly',
+        details: {
+          expectedSkus: sortedOrderSkus,
+          receivedSkus: sortedInputSkus,
+          missingSkus: missing,
+          extraSkus: extra
+        }
       });
     }
 
-    // Update order status to COMPLETED for packing
+    // ✅ Prepare update object - preserve COMPLETED status if it exists
+    let updateObj = { 
+      packing_status: 'COMPLETED',
+      is_packed: true,
+      updated_at: new Date()
+    };
+
+    // Only update status to PACKED if current status is not COMPLETED
+    if (order.status !== 'COMPLETED') {
+      updateObj.status = 'PACKED';
+      console.log('Status will be updated to PACKED');
+    } else {
+      console.log('Status is COMPLETED - will not be changed');
+    }
+
+    console.log('Update object:', updateObj);
+
+    // Update order status
     const updatedOrder = await Order.findOneAndUpdate(
       { _id: order._id },
-      { 
-        packing_status: 'COMPLETED',
-        is_packed: true,
-        status: 'PACKED',
-        updated_at: new Date()
-      },
+      updateObj,
       { new: true } // Return the updated document
     );
 
-    // ✅ Send packed notification (Instagram + SMS fallback)
-    try {
-      const notificationResult = await sendOrderPackedNotification(updatedOrder);
-      console.log('Packed notification result:', notificationResult);
-    } catch (notificationError) {
-      console.error('Failed to send packed notification:', notificationError);
-      // Don't fail the main request if notification fails
+    // ✅ Only send packed notification if status was actually changed to PACKED
+    let notificationSent = false;
+    if (order.status !== 'COMPLETED' && updateObj.status === 'PACKED') {
+      try {
+        const notificationResult = await sendOrderPackedNotification(updatedOrder);
+        console.log('Packed notification result:', notificationResult);
+        notificationSent = true;
+      } catch (notificationError) {
+        console.error('Failed to send packed notification:', notificationError);
+        // Don't fail the main request if notification fails
+      }
+    } else {
+      console.log('Notification not sent - order status was already COMPLETED');
     }
+
+    // ✅ Different response message based on whether status was changed
+    const responseMessage = order.status === 'COMPLETED' 
+      ? 'All products verified successfully (order already shipped - status preserved)'
+      : 'All products verified successfully and packed notification sent';
 
     res.status(200).json({
       success: true,
-      message: 'All products verified successfully and packed notification sent'
+      message: responseMessage,
+      statusChanged: order.status !== 'COMPLETED',
+      notificationSent: notificationSent,
+      verifiedSkus: sortedOrderSkus
     });
   } catch (error) {
     console.error('Error verifying SKUs:', error);
@@ -486,6 +625,52 @@ router.post('/verify-sku/:orderNumber', async (req, res) => {
   }
 });
 
+async function getProductSku(orderProduct, tenentId) {
+  try {
+    let finalSku = orderProduct.sku || 'unknown';
+    
+    // Check if product has unit-specific selection
+    if (orderProduct.selectedunit) {
+      const productDetail = await ProductDetail.findOne({
+        tenentId: tenentId,
+        productName: orderProduct.product_name
+      }).lean();
+      
+      if (productDetail && productDetail.units && productDetail.units.length > 0) {
+        const matchingUnit = productDetail.units.find(unit => 
+          unit.unit === orderProduct.selectedunit || 
+          unit.unit.toLowerCase() === orderProduct.selectedunit.toLowerCase()
+        );
+        
+        if (matchingUnit) {
+          finalSku = matchingUnit.sku;
+          console.log(`Using unit-specific SKU: ${finalSku} for unit: ${orderProduct.selectedunit}`);
+        } else {
+          console.warn(`Unit ${orderProduct.selectedunit} not found, using default SKU`);
+          finalSku = productDetail.sku || orderProduct.sku || 'unknown';
+        }
+      }
+    } else if (orderProduct.sku) {
+      // Use the SKU from the order product
+      finalSku = orderProduct.sku;
+    } else {
+      // Fallback to main product SKU
+      const productDetail = await ProductDetail.findOne({
+        tenentId: tenentId,
+        productName: orderProduct.product_name
+      }).lean();
+      
+      if (productDetail && productDetail.sku) {
+        finalSku = productDetail.sku;
+      }
+    }
+    
+    return finalSku;
+  } catch (error) {
+    console.error(`Error getting SKU for product ${orderProduct.product_name}:`, error);
+    return orderProduct.sku || 'unknown';
+  }
+}
 // Route to get all orders that need packing
 router.get('/pending-packing/:tenentId', async (req, res) => {
   try {
@@ -669,3 +854,4 @@ router.post('/set-packed/:orderNumber', async (req, res) => {
 });
 
 module.exports = router;
+

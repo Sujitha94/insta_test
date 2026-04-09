@@ -8,6 +8,42 @@ const productUnitSchema = new mongoose.Schema({
   price: {
     type: String,
     required: true
+  },
+  weight: {
+    type: String,
+    required: false,
+    default: ''
+  },
+  imageUrl: {
+    type: String,
+    default: ''
+  },
+  sku: {
+    type: String,
+    required: true
+  },
+  quantityInStock: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  lastRestocked: {
+    type: Date
+  }
+});
+
+const productColorSchema = new mongoose.Schema({
+  color: {
+    type: String,
+    required: true
+  },
+  price: {
+    type: String,
+    required: true
+  },
+  imageUrl: {
+    type: String,
+    default: ''
   }
 });
 
@@ -21,20 +57,23 @@ const productDetailSchema = new mongoose.Schema({
     required: true
   },
   units: [productUnitSchema],
+  colors: [productColorSchema],
   websiteLink: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   productPhoto: {
-    type: String,  // Store the photo URL
-    
+    type: String,
   },
-  productPhotoUrl:{
-    type: String,  // Store the photo URL
-    
+  productPhotoUrl: {
+    type: String,
   },
-  sku:{
-    type: String,  // Store the photo URL
+  productDescription: {
+    type: String,
+  },
+  sku: {
+    type: String,
   },
   quantityInStock: {
     type: Number,
@@ -43,12 +82,12 @@ const productDetailSchema = new mongoose.Schema({
   },
   threshold: {
     type: Number,
-    default: 10 // Default low stock threshold
+    default: 10
   },
   lastRestocked: {
     type: Date
   }
 }, { timestamps: true });
 
-const ProductDetail= mongoose.model('ProductDetail', productDetailSchema);
+const ProductDetail = mongoose.model('ProductDetail', productDetailSchema);
 module.exports = ProductDetail;

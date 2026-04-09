@@ -10,6 +10,7 @@ interface Product {
     productName: string;
     productPhotoUrl: string;
     productType: string;
+    productDescription?: string; // Added product description field
     units: { 
       unit: string; 
       price: string | number; 
@@ -31,6 +32,35 @@ interface ProductCatalogProps {
   bypassTokenCheck?: boolean;
 }
 
+// Category Grid Component
+const CategoryGrid: React.FC<{
+  categories: string[];
+  selectedCategory: string | null;
+  onCategorySelect: (category: string) => void;
+}> = ({ categories, selectedCategory, onCategorySelect }) => {
+  if (categories.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex flex-wrap gap-2 justify-center">
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => onCategorySelect(category)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+              selectedCategory === category
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = false }) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -43,9 +73,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   const [showViewCart, setShowViewCart] = useState(false);
   const [cartItems, setCartItems] = useState<Map<string, number>>(new Map());
   
+  // Modal related states
+  const [showModal, setShowModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
   // Define appUrl using useMemo to prevent recreating on every render
   const appUrl = useMemo(() => {
-    return process.env.REACT_APP_API_URL || 'https://app.instaxbot.com';
+    return process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev' ;                              
   }, []);
   
   // Create axios instance with useMemo
@@ -332,6 +366,19 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
     }
   };
 
+  // Handle product click to show details modal
+  const handleProductClick = (product: Product) => {
+    console.log('Clicked Product:', product);
+    setSelectedProduct(product);
+    setShowModal(true);
+  };
+
+  // Close modal
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedProduct(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -350,8 +397,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-24">
-      {/* Custom CSS for larger toast notifications */}
+    <div className="container mx-auto px-4 py-6 pb-24 bg-white min-h-screen">
+      {/* Custom CSS for larger toast notifications and product hover effects */}
       <style>{`
         .custom-toast {
           font-size: 18px !important;
@@ -364,21 +411,35 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
           width: auto;
           margin: 0 auto;
         }
+        .product-card {
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .product-card:hover {
+          transform: scale(1.02);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .product-image {
+          transition: transform 0.2s ease;
+        }
+        .product-image:hover {
+          transform: scale(1.05);
+        }
       `}</style>
       
       {/* Toast Container - this will render the toast notifications */}
       <ToastContainer />
       
       {/* Header with cart icon */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Product Catalog</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Product Catalog</h1>
         <Link 
           to={`/cart?tenentId=${tenentId}&securityaccessToken=${securityAccessToken}`}
           className="relative p-2"
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
-            className="h-8 w-8 text-gray-700" 
+            className="h-7 w-7 text-gray-700" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor"
@@ -391,32 +452,22 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
             />
           </svg>
           {cartItemCount > 0 && (
-            <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
               {cartItemCount}
             </span>
           )}
         </Link>
       </div>
 
-      {/* Category Navigation */}
-      <div className="flex overflow-x-auto mb-6 space-x-4 pb-2">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-              selectedCategory === category
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
+      {/* Category Grid Navigation */}
+      <CategoryGrid 
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onCategorySelect={setSelectedCategory}
+      />
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+     {/* Product Grid - Updated to reduce spacing and show 2 products per row */}
+     <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
         {products.map((product) => {
           // Check if product is out of stock
           const isOutOfStock = !product.hasOwnProperty('quantityInStock') || 
@@ -429,69 +480,86 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
           return (
             <div 
               key={product.sku} 
-              className={`bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 
-                          ${isOutOfStock ? 'opacity-70' : ''}`}
+              className={`bg-white rounded-lg shadow-md overflow-hidden product-card ${isOutOfStock ? 'opacity-70' : ''}`}
             >
               <div className="relative">
                 <img 
                   src={product.productPhotoUrl || `${appUrl}/default-product-image.jpg`} 
                   alt={product.productName}
-                  className="w-full h-48 object-cover"
+                  className="w-full h-40 object-cover product-image"
                   onError={(e) => {
                     e.currentTarget.src = `${appUrl}/default-product-image.jpg`;
                   }}
+                  onClick={() => handleProductClick(product)}
                 />
                 
                 {/* Out of stock overlay */}
                 {isOutOfStock && (
                   <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-                    <span className="bg-red-500 text-white px-3 py-1 rounded-md font-medium">
+                    <span className="bg-red-500 text-white px-3 py-1 rounded-md font-medium text-xs">
                       Out of Stock
                     </span>
                   </div>
                 )}
               </div>
               
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">{product.productName}</h3>
+              <div className="p-2">
+                <h3 
+                  className="font-semibold text-sm mb-1 text-gray-800 leading-tight cursor-pointer hover:text-blue-600 min-h-10 flex items-start"
+                  onClick={() => handleProductClick(product)}
+                  style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+                >
+                  {product.productName}
+                </h3>
                 
-                {/* Price Options */}
-                <div className="mb-4">
-                  {product.units && product.units.map((unit) => (
-                    <div key={unit.unit} className="text-sm text-gray-600">
-                      {unit.unit}: ₹{parseFloat(unit.price as string).toFixed(2)}
+                {/* Price Options - Reduced spacing */}
+                <div className="mb-1">
+                  {product.units && product.units.slice(0, 2).map((unit) => (
+                    <div key={unit.unit} className="text-xs text-gray-700">
+                      {unit.unit}: <span className="font-medium">₹{parseFloat(unit.price as string).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
                 
-                {/* Stock status indication */}
-                {!isOutOfStock && product.quantityInStock && (
-                  <div className="text-xs text-gray-500 mb-2">
-                    {product.quantityInStock} in stock
-                  </div>
-                )}
+                {/* Stock status indication - Reduced height */}
+                <div className="h-4 mb-1 flex items-center">
+                  {!isOutOfStock && product.quantityInStock && (
+                    <div className="text-xs text-gray-500">
+                      {product.quantityInStock} in stock
+                    </div>
+                  )}
+                </div>
                 
-                {/* Add to Cart / Quantity Control */}
+                {/* Add to Cart / Quantity Control - Reduced height */}
                 {inCart ? (
-                  <div className="flex items-center justify-between border border-gray-300 rounded-md overflow-hidden">
+                  <div className="flex items-center justify-between border border-gray-300 rounded-md overflow-hidden h-8">
                     <button
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
-                      onClick={() => handleUpdateQuantity(product.sku, quantity - 1)}
+                      className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm h-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateQuantity(product.sku, quantity - 1);
+                      }}
                     >
                       -
                     </button>
-                    <span className="flex-1 text-center">{quantity}</span>
+                    <span className="flex-1 text-center text-sm font-medium">{quantity}</span>
                     <button
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
-                      onClick={() => handleUpdateQuantity(product.sku, quantity + 1)}
+                      className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm h-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateQuantity(product.sku, quantity + 1);
+                      }}
                     >
                       +
                     </button>
                   </div>
                 ) : (
                   <button
-                    onClick={() => handleAddToCart(product.sku)}
-                    className={`w-full py-2 rounded-md transition-colors ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(product.sku);
+                    }}
+                    className={`w-full h-8 rounded-md transition-colors text-sm font-medium ${
                       isOutOfStock 
                         ? 'bg-gray-400 cursor-not-allowed text-gray-100' 
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -514,6 +582,145 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
         </div>
       )}
 
+      {/* Product Details Modal */}
+      {showModal && selectedProduct && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeModal}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b p-4">
+              <h3 className="text-xl font-semibold text-gray-900">Product Details</h3>
+              <button 
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-700 focus:outline-none transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="flex flex-col gap-4">
+                {/* Product Image */}
+                <div className="flex justify-center">
+                  <img 
+                    src={selectedProduct.productPhotoUrl || `${appUrl}/default-product-image.jpg`} 
+                    alt={selectedProduct.productName}
+                    className="w-48 h-48 object-cover rounded-lg shadow-md"
+                    onError={(e) => {
+                      e.currentTarget.src = `${appUrl}/default-product-image.jpg`;
+                    }}
+                  />
+                </div>
+                
+                {/* Product Name and Price */}
+                <div className="bg-white-50 p-2 rounded-md border border-gray-200 max-w-sm">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    {selectedProduct.productName}
+                  </h2>
+
+                  {selectedProduct.units && selectedProduct.units.length > 0 && (
+                    <div className="text-lg font-medium text-green-600">
+                      ₹{parseFloat(selectedProduct.units[0].price as string).toFixed(2)}
+                    </div>
+                  )}
+                </div>          
+                {/* Product Description Section */}
+                {selectedProduct?.productDescription && (
+                  <div className="bg-white-50 p-4 rounded-lg border border-gray-200">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Description:</h4>
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                      {selectedProduct.productDescription}
+                    </p>
+                  </div>
+                )}
+
+                {/* Product Details */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Product Information:</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">SKU:</span>
+                      <span className="font-medium text-gray-800">{selectedProduct.sku}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Category:</span>
+                      <span className="font-medium text-gray-800">{selectedProduct.productType}</span>
+                    </div>
+                    {selectedProduct.quantityInStock !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Stock:</span>
+                        <span className="font-medium text-gray-800">{selectedProduct.quantityInStock} units</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Price Options Section */}
+                {selectedProduct.units && selectedProduct.units.length > 1 && (
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Available Options:</h4>
+                    <div className="space-y-2">
+                      {selectedProduct.units.map((unit) => (
+                        <div key={unit.unit} className="flex justify-between items-center">
+                          <span className="text-gray-700 font-medium">{unit.unit}:</span>
+                          <span className="font-semibold text-green-600 text-lg">₹{parseFloat(unit.price as string).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Stock Status */}
+                <div className="p-3 rounded-lg border">
+                  <div className="flex items-center justify-center">
+                    {selectedProduct.quantityInStock && selectedProduct.quantityInStock > 0 ? (
+                      <span className="text-green-600 font-medium flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        In Stock ({selectedProduct.quantityInStock} available)
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-medium flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        Out of Stock
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Add to Cart Button */}
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    handleAddToCart(selectedProduct.sku);
+                    closeModal();
+                  }}
+                  className={`w-full py-3 rounded-md transition-colors text-lg font-medium ${
+                    !selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-100'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                  }`}
+                  disabled={!selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0}
+                >
+                  {!selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* View Cart Button (Fixed at Bottom) */}
       {showViewCart && (
         <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4 flex justify-center">
@@ -530,3 +737,4 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
 };
 
 export default ProductCatalog;
+

@@ -66,14 +66,16 @@ const CarouselMessage: React.FC<CarouselMessageProps> = ({
   };
 
   const renderButton = (button: CarouselButton, index: number) => {
+    const buttonClasses = "w-full px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg text-center font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm hover:shadow-md";
+    
     if (button.type === 'web_url' && button.url) {
       return (
-         <a
+        <a
           key={index}
           href={button.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded-md text-center hover:bg-blue-600 mb-2 last:mb-0"
+          className={buttonClasses}
         >
           {button.title}
         </a>
@@ -84,7 +86,7 @@ const CarouselMessage: React.FC<CarouselMessageProps> = ({
       <button
         key={index}
         onClick={() => onButtonClick?.(button.payload || '')}
-        className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 mb-2 last:mb-0"
+        className={buttonClasses}
       >
         {button.title}
       </button>
@@ -92,77 +94,89 @@ const CarouselMessage: React.FC<CarouselMessageProps> = ({
   };
 
   const currentProduct = products[currentIndex];
-
-  // Determine position based on message content
-  const isMessageSide = message.message === 'Carousel Message';
-  const isResponseSide = message.response === 'Carousel Message' || !isMessageSide;
+  const isResponseSide = message.response === 'Carousel Message' || !message.message || message.message === 'Carousel Message';
 
   return (
-    <div className="flex flex-col">
-      {/* User message (if it exists and it's not the trigger message) */}
+    <div className="flex flex-col gap-2">
       {message.message && message.message !== 'Carousel Message' && (
-        <div className="flex justify-start mb-2">
-          <div className="max-w-[70%] rounded-lg px-4 py-2 bg-white shadow-sm">
-            <p className="break-words">{message.message}</p>
-            <div className="text-xs mt-1 text-gray-500">
+        <div className="flex justify-start">
+          <div className="max-w-[75%] rounded-2xl px-4 py-2.5 bg-white shadow-sm border border-gray-100">
+            <p className="text-gray-800 break-words leading-relaxed">{message.message}</p>
+            <div className="text-xs mt-1.5 text-gray-500">
               {formatMessageTime(message.Timestamp)}
             </div>
           </div>
         </div>
       )}
       
-      {/* Carousel display */}
-      <div className={`flex ${isResponseSide ? 'justify-end' : 'justify-start'} mb-2`}>
-        <div className={`max-w-[320px] rounded-lg p-4 ${isResponseSide ? 'bg-blue-500 text-white' : 'bg-white'}`}>
+      <div className={`flex ${isResponseSide ? 'justify-end' : 'justify-start'}`}>
+        <div className={`max-w-[340px] rounded-2xl p-4 ${isResponseSide ? 'bg-gradient-to-br from-[#FAE8D6] to-[#F5DCC8] border border-orange-100' : 'bg-white border border-gray-100'} shadow-sm`}>
           <div className="relative">
-            <div className="carousel-container relative">
-              <div className="max-w-[280px] bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="relative">
                 <img 
                   src={currentProduct.imageUrl}
                   alt={currentProduct.title}
                   className="w-full h-48 object-cover"
                 />
-                <div className="p-4">
-                  <h3 className="font-bold text-lg mb-2 text-black">{currentProduct.title}</h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-line mb-4">{currentProduct.subtitle}</p>
-                  <div className="flex flex-col space-y-2">
-                    {currentProduct.buttons.map((button, buttonIndex) => renderButton(button, buttonIndex))}
-                  </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                
+                {products.length > 1 && (
+                  <>
+                    <button 
+                      onClick={prevSlide} 
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/95 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-all duration-200 hover:scale-110"
+                      aria-label="Previous product"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-gray-800" />
+                    </button>
+                    
+                    <button 
+                      onClick={nextSlide}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/95 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-all duration-200 hover:scale-110"
+                      aria-label="Next product"
+                    >
+                      <ChevronRight className="h-5 w-5 text-gray-800" />
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="font-bold text-lg text-gray-900 line-clamp-2 flex-1">{currentProduct.title}</h3>
+                  {products.length > 1 && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium whitespace-nowrap">
+                      {currentIndex + 1}/{products.length}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mb-4 line-clamp-3">{currentProduct.subtitle}</p>
+                <div className="flex flex-col gap-2">
+                  {currentProduct.buttons.map((button, buttonIndex) => renderButton(button, buttonIndex))}
                 </div>
               </div>
               
-              {/* Navigation buttons */}
-              <button 
-                onClick={prevSlide} 
-                className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white/80 p-1 rounded-full shadow-md hover:bg-white"
-                aria-label="Previous product"
-              >
-                <ChevronLeft className="h-5 w-5 text-black" />
-              </button>
-              
-              <button 
-                onClick={nextSlide}
-                className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white/80 p-1 rounded-full shadow-md hover:bg-white"
-                aria-label="Next product"
-              >
-                <ChevronRight className="h-5 w-5 text-black" />
-              </button>
-              
-              {/* Pagination indicators */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-2">
-                {products.map((_, index) => (
-                  <div 
-                    key={index}
-                    className={`h-2 w-2 rounded-full mx-1 ${
-                      index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
+              {products.length > 1 && (
+                <div className="flex justify-center pb-3 gap-1.5">
+                  {products.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        index === currentIndex 
+                          ? 'w-6 bg-orange-500' 
+                          : 'w-2 bg-gray-300 hover:bg-gray-400'
+                      }`}
+                      aria-label={`Go to product ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           
-          <div className={`text-xs mt-2 ${isResponseSide ? 'text-white opacity-70' : 'text-gray-500'}`}>
+          <div className={`text-xs mt-3 text-right ${isResponseSide ? 'text-gray-600' : 'text-gray-500'}`}>
             {formatMessageTime(message.Timestamp)}
           </div>
         </div>

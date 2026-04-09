@@ -93,7 +93,7 @@ router.post('/initialize-templates', async (req, res) => {
 
     // Check if tenant already has templates
     const existingTemplates = await Template.find({ tenent_id: tenentId });
-    
+
     if (existingTemplates.length > 0) {
       return res.status(200).json({
         success: true,
@@ -104,10 +104,10 @@ router.post('/initialize-templates', async (req, res) => {
 
     // Create default templates
     await Template.createDefaultTemplates(tenentId);
-    
+
     // Get the newly created templates
     const templates = await Template.find({ tenent_id: tenentId });
-    
+
     res.status(201).json({
       success: true,
       message: 'Default templates created successfully',
@@ -133,7 +133,11 @@ router.get('/print-bill/:billId', async (req, res) => {
       return res.status(400).json({ error: 'Bill ID is required' });
     }
 
-    // This is causing the error - we need to modify the query to avoid casting to ObjectId
+    if (!tenentId) {
+      return res.status(400).json({ error: 'Tenant ID is required' });
+    }
+
+    // Build query to find order by multiple possible identifiers
     let query = {
       tenentId: tenentId
     };
@@ -161,21 +165,40 @@ router.get('/print-bill/:billId', async (req, res) => {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    console.log(`Bill ${billId} found for tenant: ${tenentId}, ID: ${order._id}`);
+    console.log(`Bill ${billId} found for tenant: ${tenentId}, ID: ${order._id}, Status: ${order.status}`);
+
+    // ✅ NEW: Check if order status allows printing - block PENDING orders
+    if (order.status === 'CREATED') {
+      console.log(`Bill ${billId} cannot be printed due to PENDING status`);
+      return res.status(400).json({
+        error: 'Cannot print order with PENDING status. Order must be processed before printing.',
+        currentStatus: order.status,
+        billId: billId
+      });
+    }
 
     const fromAddress = await getOrganizationAddress(tenentId);
     const formattedBill = formatOrderForPrinting(order, fromAddress);
 
-    // ✅ UPDATE: Update both print_status and status to 'PRINTED'
+    // ✅ UPDATE: Conditionally update status based on current order status
+    const preservedStatuses = ['COMPLETED', 'PACKED', 'HOLDED'];
+
+    let updateFields = {
+      print_status: 'PRINTED',
+      last_printed_at: new Date()
+    };
+
+    // Only update status to 'PRINTED' if current status is not in preserved statuses
+    if (!preservedStatuses.includes(order.status)) {
+      updateFields.status = 'PRINTED';
+    }
+
     await Order.updateOne(
       { _id: order._id },
-      { $set: { 
-        print_status: 'PRINTED', 
-        status: 'PRINTED',
-        last_printed_at: new Date() 
-      } }
+      { $set: updateFields }
     );
-    console.log(`Bill ${billId} marked as printed with status updated`);
+
+    console.log(`Bill ${billId} marked as printed. Status: ${order.status} -> ${updateFields.status || order.status}`);
 
     res.status(200).json(formattedBill);
   } catch (error) {
@@ -189,14 +212,15 @@ router.get('/bulkPrinting', async (req, res) => {
   try {
     const tenentId = req.tenentId || req.headers['tenent-id'];
     const limit = parseInt(req.query.limit) || 50; // Default to max 50 orders at once
+    const dryRun = req.query.dryRun === '1' || req.query.preview === '1'; // ✨ NEW
 
-    console.log(`Fetching pending orders for bulk printing. Tenant: ${tenentId}, Limit: ${limit}`);
+    console.log(`Fetching pending orders for bulk printing. Tenant: ${tenentId}, Limit: ${limit}, dryRun=${dryRun}`);
 
-    // ✅ UPDATE: Include 'PACKED' status in the query
+    // include both cases if you want (adjust as you already do elsewhere)
     const pendingOrders = await Order.find({
       tenentId: tenentId,
       print_status: 'PENDING',
-      status: { $in: ['paid', 'shipped', 'processing', 'PACKED'] }
+      status: { $in: ['processing','PROCESSING'] } // add PACKED/PAID if desired
     }).limit(limit).sort({ created_at: 1 });
 
     console.log(`Found ${pendingOrders.length} pending orders for tenant: ${tenentId}`);
@@ -204,40 +228,60 @@ router.get('/bulkPrinting', async (req, res) => {
     if (pendingOrders.length === 0) {
       return res.status(200).json({
         bills: [],
-        message: "No pending orders found to print"
+        message: "No pending orders found to print",
+        aggregatedProducts: [],      // ✨ for FE code simplicity
+        totals: { totalBills: 0, totalItems: 0 }
       });
     }
 
     const fromAddress = await getOrganizationAddress(tenentId);
-
     const formattedBills = pendingOrders.map(order => formatOrderForPrinting(order, fromAddress));
 
-    const orderIds = pendingOrders.map(order => order._id);
-    
-    // ✅ UPDATE: Update both print_status and status to 'PRINTED'
-    await Order.updateMany(
-      { _id: { $in: orderIds } },
-      { $set: { 
-        print_status: 'PRINTED', 
-        status: 'PRINTED',
-        last_printed_at: new Date() 
-      } }
-    );
-    console.log(`Marked ${orderIds.length} orders as printed with status updated`);
+    // ✨ NEW: aggregate product quantities across all bills (by name + selected unit)
+    const productMap = new Map(); // key: productName, value: qty
+    let totalItems = 0;
 
-    const remaining = await getRemainingPendingCount(tenentId);
-    console.log(`Remaining pending orders: ${remaining}`);
+    for (const bill of formattedBills) {
+      for (const p of bill.product_details) {
+        const name = p.productName; // already includes (selectedunit) in your formatter
+        const qty = Number(p.quantity || 0);
+        totalItems += qty;
+        productMap.set(name, (productMap.get(name) || 0) + qty);
+      }
+    }
+
+    const aggregatedProducts = Array.from(productMap.entries())
+      .map(([productName, quantity]) => ({ productName, quantity }))
+      .sort((a, b) => a.productName.localeCompare(b.productName));
+
+    const orderIds = pendingOrders.map(order => order._id);
+
+    // ✨ Only mutate DB when NOT dryRun
+    if (!dryRun) {
+      await Order.updateMany(
+        { _id: { $in: orderIds } },
+        { $set: { print_status: 'PRINTED', status: 'PRINTED', last_printed_at: new Date() } }
+      );
+      console.log(`Marked ${orderIds.length} orders as printed with status updated`);
+    } else {
+      console.log(`Dry run enabled: no DB updates performed.`);
+    }
+
+    const remaining = dryRun ? await getRemainingPendingCount(tenentId) : await getRemainingPendingCount(tenentId);
 
     res.status(200).json({
-      bills: formattedBills,
+      bills: formattedBills,                 // FE can still render previews if needed
       total: pendingOrders.length,
-      remaining: remaining
+      remaining, 
+      aggregatedProducts,                    // ✨ used for the popup list
+      totals: { totalBills: pendingOrders.length, totalItems }  // ✨ quick stats
     });
   } catch (error) {
     console.error('Error fetching bills for bulk printing:', error);
     res.status(500).json({ error: 'Server error fetching bills for printing' });
   }
 });
+
 
 // Helper function to get remaining pending order count
 async function getRemainingPendingCount(tenentId) {
@@ -246,7 +290,7 @@ async function getRemainingPendingCount(tenentId) {
     const count = await Order.countDocuments({
       tenentId: tenentId,
       print_status: 'PENDING',
-      status: { $in: ['paid', 'shipped', 'processing', 'PACKED'] }
+      status: { $in: ['processing', 'PROCESSING'] }
     });
     console.log(`Counted ${count} remaining pending orders for tenant: ${tenentId}`);
     return count;
@@ -325,11 +369,24 @@ function formatOrderForPrinting(order, orgAddress) {
   const totalWeight = calculateOrderWeight(order.products);
 
   // Create a product list showing quantity and number of specific products
-  const productDetails = order.products.map(product => ({
-    productName: product.product_name,
-    quantity: product.quantity || 1,
-    productCount: order.products.filter(p => p.product_name === product.product_name).length
-  }));
+  // Include selectedunit in product name if it exists
+  const productDetails = order.products.map(product => {
+    let productDisplayName = product.product_name;
+
+    // Add selectedunit to product name if it exists
+    if (product.selectedunit) {
+      productDisplayName += ` (${product.selectedunit})`;
+    }
+
+    return {
+      productName: productDisplayName,
+      quantity: product.quantity || 1,
+      productCount: order.products.filter(p => p.product_name === product.product_name).length,
+      // Keep original data for reference
+      originalProductName: product.product_name,
+      selectedUnit: product.selectedunit || null
+    };
+  });
 
   return {
     bill_id: order.orderId || order.bill_no,
@@ -347,8 +404,8 @@ function formatOrderForPrinting(order, orgAddress) {
       bill_no: order.orderId || order.bill_no,
       date: new Date(order.created_at).toLocaleDateString(),
       time: new Date(order.created_at).toLocaleTimeString(),
-      payment_method: order.payment_method || 'Online',
-      payment_status: order.payment_status || (order.status === 'paid' ? 'Paid' : 'Pending')
+      payment_method: order.payment_method || order.paymentMethod || 'Online',
+      payment_status: order.payment_status || order.paymentStatus || (order.status === 'paid' ? 'Paid' : 'Pending')
     },
     product_details: productDetails,
     shipping_details: {
@@ -473,7 +530,7 @@ router.get('/pending-count', async (req, res) => {
     const count = await Order.countDocuments({
       tenentId: tenentId,
       print_status: 'PENDING',
-      status: { $in: ['paid', 'shipped', 'processing', 'PACKED'] }
+      status: { $in: ['processing', 'PROCESSING'] }
     });
 
     console.log(`Pending print count for tenant ${tenentId}: ${count} (out of ${totalOrders} total orders)`);
@@ -515,20 +572,20 @@ async function updateOrderPrintStatus(billId, tenentId) {
   try {
     // ✅ UPDATE: Update both print_status and status to 'PRINTED'
     await Order.updateOne(
-      { 
+      {
         $or: [
           { orderId: billId },
           { bill_no: billId },
           { _id: /^[0-9a-fA-F]{24}$/.test(billId) ? billId : null }
         ].filter(Boolean),
-        tenentId: tenentId 
+        tenentId: tenentId
       },
-      { 
-        $set: { 
+      {
+        $set: {
           print_status: 'PRINTED',
           status: 'PRINTED',
-          last_printed_at: new Date() 
-        } 
+          last_printed_at: new Date()
+        }
       }
     );
     console.log(`Order ${billId} print status and main status updated to PRINTED`);
@@ -541,24 +598,24 @@ router.post('/generate-pdf', async (req, res) => {
   try {
     const { html, templateId, billId } = req.body;
     const tenentId = req.headers['tenent-id'];
-    
+
     // Get template dimensions based on templateId
     const templateDimensions = getTemplateDimensions(templateId);
-    
+
     // Launch a browser instance
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    
+
     // Set the page size based on the template
     await page.setViewport({
       width: templateDimensions.width,
       height: templateDimensions.height,
       deviceScaleFactor: 2 // for higher quality
     });
-    
+
     // Set the content
     await page.setContent(html);
-    
+
     // Generate PDF
     const pdfBuffer = await page.pdf({
       width: `${templateDimensions.width / 96}in`,
@@ -566,18 +623,18 @@ router.post('/generate-pdf', async (req, res) => {
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });
-    
+
     await browser.close();
-    
+
     // ✅ UPDATE: Update order status if billId provided
     if (billId) {
       await updateOrderPrintStatus(billId, tenentId);
     }
-    
+
     // Send the PDF as response
     res.contentType('application/pdf');
     res.send(pdfBuffer);
-    
+
   } catch (error) {
     console.error('Error generating PDF:', error);
     res.status(500).send({ error: 'Failed to generate PDF' });
@@ -592,7 +649,7 @@ function getTemplateDimensions(templateId) {
     '4x6': { width: 384, height: 576 },
     'a4': { width: 793, height: 1123 }
   };
-  
+
   return templates[templateId] || templates['4x4'];
 }
 
@@ -600,26 +657,26 @@ router.post('/generate-bulk-pdf', async (req, res) => {
   try {
     const { html, templateId } = req.body;
     const tenentId = req.headers['tenent-id'];
-    
+
     // Launch a browser instance
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    
+
     // Set the content
     await page.setContent(html);
-    
+
     // Generate PDF
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true
     });
-    
+
     await browser.close();
-    
+
     // Send the PDF as response
     res.contentType('application/pdf');
     res.send(pdfBuffer);
-    
+
   } catch (error) {
     console.error('Error generating bulk PDF:', error);
     res.status(500).send({ error: 'Failed to generate bulk PDF' });
@@ -646,17 +703,17 @@ router.get('/templates', async (req, res) => {
     // If no templates found, create default templates
     if (templates.length === 0) {
       console.log(`No templates found for tenant: ${tenentId}, creating defaults`);
-      
+
       // Create default templates
       await Template.createDefaultTemplates(tenentId);
-      
+
       // Fetch the newly created templates
       templates = await Template.find({ tenent_id: tenentId })
         .sort({ createdAt: -1 });
     }
 
     console.log(`Found ${templates.length} templates for tenant: ${tenentId}`);
-    
+
     // Format templates for frontend
     const formattedTemplates = templates.map(template => ({
       id: template.templateId,
@@ -712,7 +769,7 @@ router.post('/templates', async (req, res) => {
     });
 
     let savedTemplate;
-    
+
     if (existingTemplate) {
       // Update existing template
       savedTemplate = await Template.findByIdAndUpdate(
@@ -757,7 +814,7 @@ router.get('/default-template', async (req, res) => {
     }
 
     // Find the default template for this tenant
-    const defaultTemplate = await Template.findOne({ 
+    const defaultTemplate = await Template.findOne({
       tenent_id: tenentId,
       isDefault: true
     });
@@ -772,7 +829,7 @@ router.get('/default-template', async (req, res) => {
     }
 
     console.log(`Default template found for tenant: ${tenentId}`);
-    
+
     // Format template for frontend
     const formattedTemplate = {
       id: defaultTemplate.templateId,
@@ -809,7 +866,7 @@ router.delete('/templates/:templateId', async (req, res) => {
       });
     }
 
-    const result = await Template.deleteOne({ 
+    const result = await Template.deleteOne({
       tenent_id: tenentId,
       templateId: templateId
     });
@@ -822,7 +879,7 @@ router.delete('/templates/:templateId', async (req, res) => {
     }
 
     console.log(`Template ${templateId} deleted for tenant: ${tenentId}`);
-    
+
     res.status(200).json({
       success: true,
       message: 'Template deleted successfully'
@@ -848,10 +905,10 @@ router.post('/reset-print-status', async (req, res) => {
     console.log(`Resetting print status for tenant: ${tenentId}, days back: ${daysBack}`);
 
     // ✅ UPDATE: Include 'PACKED' and 'PRINTED' in valid statuses
-    const validStatuses = ['paid', 'shipped', 'processing', 'completed', 'PACKED', 'PRINTED'];
+    const validStatuses = ['processing', 'paid', 'shipped', 'delivered', 'completed', 'CREATED', 'PENDING', 'PROCESSING', 'PAID', 'SHIPPED', 'DELIVERED', 'COMPLETED','HOLDED'];
     const orderStatuses = status ?
       (Array.isArray(status) ? status.filter(s => validStatuses.includes(s)) : [status].filter(s => validStatuses.includes(s)))
-      : ['paid', 'shipped', 'processing', 'PACKED'];
+      : ['processing', 'paid', 'shipped', 'delivered', 'completed', 'CREATED', 'PENDING', 'PROCESSING', 'PAID', 'SHIPPED', 'DELIVERED','COMPLETED','HOLDED'];
 
     if (orderStatuses.length === 0) {
       return res.status(400).json({ error: 'No valid order statuses provided' });
@@ -895,19 +952,19 @@ router.post('/reset-print-status', async (req, res) => {
 router.get('/debug-schema', async (req, res) => {
   try {
     const tenentId = req.tenentId || req.headers['tenent-id'];
- 
+
     const sampleOrder = await Order.findOne({ tenentId: tenentId }).lean();
- 
+
     if (!sampleOrder) {
       return res.status(404).json({
         message: 'No orders found for this tenant',
         schema: Order.schema.paths
       });
     }
- 
+
     delete sampleOrder.payment_details;
     delete sampleOrder.customer_password;
- 
+
     res.status(200).json({
       message: 'Schema information retrieved',
       schema: Object.keys(Order.schema.paths),
@@ -918,5 +975,5 @@ router.get('/debug-schema', async (req, res) => {
     res.status(500).json({ error: 'Server error retrieving schema info' });
   }
  });
- 
+
  module.exports = router;

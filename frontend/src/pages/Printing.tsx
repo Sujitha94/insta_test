@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Printer, Edit2, RotateCcw, ArrowRight } from "lucide-react"
+import { Printer, RotateCcw, ArrowRight, Package, MapPin, X } from "lucide-react"
 import OrderPrintPage from "@/components/OrderPrintPage"
 import ShippingLabelTemplate from "@/components/ShippingLabelTemplate"
 import { publicApi } from "@/utils/axios"
@@ -106,22 +105,17 @@ interface PrintManagementProps {
   orderData?: OrderType
 }
 
-// UNIFIED LAYOUT DATA STRUCTURE - Single source of truth for both print and PDF
+// UNIFIED LAYOUT DATA STRUCTURE
 interface UnifiedLayoutData {
-  // Template dimensions
   templateWidth: number
   templateHeight: number
   templateWidthPt: number
   templateHeightPt: number
-
-  // Styling
   baseFontSize: number
   titleFontSize: number
   smallFontSize: number
   lineHeight: number
   letterSpacing: string
-
-  // Spacing and positioning
   marginPx: number
   marginPt: number
   paddingPx: number
@@ -130,16 +124,10 @@ interface UnifiedLayoutData {
   borderWidthPt: number
   topPaddingAdjustment: number
   sectionSpacing: number
-
-  // Box dimensions
   toAddressBoxHeight: number
   detailBoxHeight: number
-
-  // Barcode settings
   barcodeWidth: number
   barcodeHeight: number
-
-  // Content data
   formattedOrder: any
   fromAddress: any
   productText: string
@@ -169,6 +157,17 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
   const [isEditingAddress, setIsEditingAddress] = useState(false)
   const [printHistory, setPrintHistory] = useState<string[]>([])
   const [showPrintHistory, setShowPrintHistory] = useState(false)
+  const [activePrintSection, setActivePrintSection] = useState<"labels" | "single">("labels")
+
+  // Bulk Preview State
+  const [showBulkPreview, setShowBulkPreview] = useState(false)
+  const [bulkPreviewData, setBulkPreviewData] = useState<{
+    aggregatedProducts: { productName: string; quantity: number }[]
+    totals: { totalBills: number; totalItems: number }
+  }>({
+    aggregatedProducts: [],
+    totals: { totalBills: 0, totalItems: 0 }
+  })
 
   const defaultOrder: OrderType = {
     id: "120873",
@@ -359,6 +358,7 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
       if (response.data.success) {
         setIsAddressSaved(true)
         setIsEditingAddress(false)
+        setShowTemplateEdit(false)
       } else {
         alert("Error saving address: " + response.data.message)
       }
@@ -436,43 +436,59 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
     }
   }
 
-  // IMPROVED UNIFIED LAYOUT GENERATOR - Fixed spacing and alignment calculations
+  // UNIFIED LAYOUT GENERATOR
   const generateUnifiedLayoutData = (
     billData: any,
     template: TemplateType | null,
     fromAddr: FromAddressType,
   ): UnifiedLayoutData => {
-    // Template dimensions
     const templateWidth = template?.width || 384
     const templateHeight = template?.height || 384
-    const templateWidthPt = templateWidth * 0.75 // Convert px to pt (96 DPI)
+    const templateWidthPt = templateWidth * 0.75
     const templateHeightPt = templateHeight * 0.75
 
-    // IMPROVED Template-specific styling with better proportions
     let styling
     if (template?.id === "2x4" || templateWidth <= 192) {
       styling = {
-        baseFontSize: 7,
-        titleFontSize: 8,
-        smallFontSize: 6,
-        lineHeight: 1.1,
+        baseFontSize: 6,
+        titleFontSize: 7,
+        smallFontSize: 5,
+        lineHeight: 1.0,
         letterSpacing: "normal",
-        marginPx: 6,
-        marginPt: 4.5,
-        paddingPx: 4,
-        paddingPt: 3,
-        borderWidthPx: 1,
-        borderWidthPt: 0.75,
-        topPaddingAdjustment: 6,
-        sectionSpacing: 3,
-        barcodeWidth: 1.2,
-        barcodeHeight: 25,
+        marginPx: 8,
+        marginPt: 6,
+        paddingPx: 3,
+        paddingPt: 2.25,
+        borderWidthPx: 1.5,
+        borderWidthPt: 1.125,
+        topPaddingAdjustment: 4,
+        sectionSpacing: 4,
+        barcodeWidth: 1.0,
+        barcodeHeight: 30,
       }
     } else if (template?.id === "4x4" || templateWidth <= 384) {
       styling = {
-        baseFontSize: 10,
-        titleFontSize: 11,
-        smallFontSize: 9,
+        baseFontSize: 9,
+        titleFontSize: 10,
+        smallFontSize: 8,
+        lineHeight: 1.1,
+        letterSpacing: "normal",
+        marginPx: 8,
+        marginPt: 6,
+        paddingPx: 4,
+        paddingPt: 3,
+        borderWidthPx: 1.5,
+        borderWidthPt: 1.125,
+        topPaddingAdjustment: 4,
+        sectionSpacing: 4,
+        barcodeWidth: 1.0,
+        barcodeHeight: 35,
+      }
+    } else {
+      styling = {
+        baseFontSize: 11,
+        titleFontSize: 12,
+        smallFontSize: 10,
         lineHeight: 1.2,
         letterSpacing: "normal",
         marginPx: 8,
@@ -481,32 +497,13 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
         paddingPt: 3.75,
         borderWidthPx: 1.5,
         borderWidthPt: 1.125,
-        topPaddingAdjustment: 6,
-        sectionSpacing: 5,
-        barcodeWidth: 1.2,
-        barcodeHeight: 30,
-      }
-    } else {
-      styling = {
-        baseFontSize: 12,
-        titleFontSize: 13,
-        smallFontSize: 11,
-        lineHeight: 1.3,
-        letterSpacing: "normal",
-        marginPx: 10,
-        marginPt: 7.5,
-        paddingPx: 6,
-        paddingPt: 4.5,
-        borderWidthPx: 1.5,
-        borderWidthPt: 1.125,
-        topPaddingAdjustment: 8,
-        sectionSpacing: 6,
-        barcodeWidth: 1.2,
-        barcodeHeight: 35,
+        topPaddingAdjustment: 4,
+        sectionSpacing: 4,
+        barcodeWidth: 1.0,
+        barcodeHeight: 40,
       }
     }
 
-    // Format order data (EXACT same formatting for both print and PDF)
     const formattedOrder = {
       id: billData.bill_id,
       name: billData.customer_details.name,
@@ -522,9 +519,9 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
       products: billData.product_details,
       totalItems: billData.product_details.reduce((total: number, product: any) => total + product.quantity, 0),
       orderDate: `${billData.bill_details.date}, ${billData.bill_details.time}`,
+      weight: billData.shipping_details?.weight || "0.5 kg"
     }
 
-    // Format from address (EXACT same formatting)
     const formattedFromAddress = {
       name: billData.organisation_details?.Name || fromAddr.name,
       street: billData.organisation_details?.street || fromAddr.street,
@@ -534,37 +531,35 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
       phone: billData.organisation_details?.phone || fromAddr.phone,
     }
 
-    // IMPROVED Format products text with better truncation logic
     const formatProductsList = (products: Array<{ productName?: string; name?: string; quantity: number }>): string => {
       if (!products || products.length === 0) {
         return "No products"
       }
 
-      const maxLength = template?.id === "2x4" ? 12 : template?.id === "4x4" ? 20 : 30
+      if (template?.id === "2x4") {
+        return products
+          .map((product) => {
+            const productName = product.productName || product.name
+            const truncatedName =
+              productName && productName.length > 10 ? productName.substring(0, 9) + "…" : productName
+            return `${truncatedName} × ${product.quantity}`
+          })
+          .join(", ")
+      }
 
       return products
         .map((product) => {
-          const productName = product.productName || product.name || "Unknown Product"
-          const truncatedName =
-            productName.length > maxLength ? productName.substring(0, maxLength - 1) + "…" : productName
-          return `${truncatedName} × ${product.quantity}`
+          const productName = product.productName || product.name
+          return `${productName} × ${product.quantity}`
         })
         .join(", ")
     }
 
     const productText = formatProductsList(formattedOrder.products)
 
-    // IMPROVED Calculate box dimensions with better proportions and spacing
-    const availableHeight = templateHeightPt - 2 * styling.marginPt - styling.topPaddingAdjustment
-    const headerHeight = styling.titleFontSize * 3 // Ship via + Order ID + spacing
-    const barcodeHeight = styling.barcodeHeight + 20 // Barcode + margins
-    const remainingHeight = availableHeight - headerHeight - barcodeHeight
+    const toAddressBoxHeight = templateHeightPt * 0.28
+    const detailBoxHeight = templateHeightPt * 0.22
 
-    // Adjust box heights to ensure product section starts below mobile number
-    const toAddressBoxHeight = Math.max(remainingHeight * 0.32, 55) // Slightly reduced
-    const detailBoxHeight = Math.max(remainingHeight * 0.32, 55) // Increased to accommodate mobile number
-    const productSectionSpacing = styling.sectionSpacing + 2 // Extra spacing between boxes
-    console.log(productSectionSpacing)
     return {
       templateWidth,
       templateHeight,
@@ -584,7 +579,7 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
     return new Promise((resolve) => {
       try {
         const canvas = document.createElement("canvas")
-        canvas.width = layout.barcodeWidth * 80
+        canvas.width = layout.barcodeWidth * 60
         canvas.height = layout.barcodeHeight
 
         if (typeof window !== "undefined" && window.JsBarcode) {
@@ -608,647 +603,330 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
     })
   }
 
-  // IMPROVED UNIFIED PRINT CONTENT GENERATOR with better box alignment
-  const generatePrintContent = (layout: UnifiedLayoutData, barcodeDataUrl = ""): string => {
-    const { formattedOrder, fromAddress: fromAddr } = layout
-
-    return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Print Label - ${formattedOrder.id}</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-        <style>
-          @media print {
-            @page {
-              size: ${layout.templateWidthPt / 72}in ${layout.templateHeightPt / 72}in;
-              margin: 0;
-            }
-            body {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: ${layout.templateWidth}px !important;
-              height: ${layout.templateHeight}px !important;
-              max-height: ${layout.templateHeight}px !important;
-              overflow: hidden !important;
-            }
-            .container {
-              width: 100% !important;
-              height: 100% !important;
-              page-break-after: always;
-              overflow: hidden !important;
-              box-sizing: border-box;
-              padding: ${layout.paddingPx}px !important;
-              border: 0 !important;
-            }
-          }
-
-          * {
-            box-sizing: border-box;
-          }
-
-          html, body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            font-size: ${layout.baseFontSize}px;
-            line-height: ${layout.lineHeight};
-            font-weight: normal;
-            letter-spacing: ${layout.letterSpacing};
-          }
-
-          .container {
-            width: ${layout.templateWidth}px;
-            height: ${layout.templateHeight}px;
-            margin: 0 auto;
-            padding: ${layout.paddingPx}px;
-            box-sizing: border-box;
-            position: relative;
-            border: 0;
-            display: flex;
-            flex-direction: column;
-          }
-
-          .header {
-            font-size: ${layout.baseFontSize}px;
-            font-weight: normal;
-            margin-bottom: 4px;
-            text-align: left;
-            flex-shrink: 0;
-          }
-
-          .order-id {
-            font-size: ${layout.baseFontSize}px;
-            font-weight: normal;
-            margin-bottom: 6px;
-            text-align: center;
-            flex-shrink: 0;
-          }
-
-          .barcode-wrapper {
-            text-align: center;
-            margin: 6px auto 8px auto;
-            height: ${layout.barcodeHeight}px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            flex-shrink: 0;
-          }
-
-          .barcode-img {
-            height: ${layout.barcodeHeight}px;
-            max-width: 90%;
-          }
-
-          .address-box {
-            border: ${layout.borderWidthPx}px solid #000;
-            padding: ${layout.paddingPx}px;
-            margin-bottom: ${layout.sectionSpacing}px;
-            height: ${layout.toAddressBoxHeight}px;
-            overflow: hidden;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-          }
-
-          .to-name {
-            font-weight: bold;
-            font-size: ${layout.baseFontSize}px;
-            margin-bottom: 2px;
-            line-height: ${layout.lineHeight};
-          }
-
-          .address-line {
-            font-size: ${layout.baseFontSize}px;
-            line-height: ${layout.lineHeight};
-            margin-bottom: 1px;
-          }
-
-          .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: ${layout.sectionSpacing}px;
-            margin-bottom: ${layout.sectionSpacing + 2}px;
-            flex-shrink: 0;
-          }
-
-          .detail-box {
-            border: ${layout.borderWidthPx}px solid #000;
-            padding: ${layout.paddingPx}px;
-            height: ${layout.detailBoxHeight}px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-          }
-
-          .detail-title {
-            font-weight: bold;
-            font-size: ${layout.baseFontSize}px;
-            margin-bottom: 2px;
-            line-height: ${layout.lineHeight};
-          }
-
-          .detail-line {
-            font-size: ${layout.smallFontSize}px;
-            line-height: ${layout.lineHeight};
-            margin-bottom: 1px;
-          }
-
-          .product-section {
-            border: ${layout.borderWidthPx}px solid #000;
-            padding: ${layout.paddingPx}px;
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            margin-top: ${layout.sectionSpacing}px;
-            min-height: 0;
-          }
-
-          .product-title {
-            font-weight: bold;
-            font-size: ${layout.baseFontSize}px;
-            margin-bottom: 2px;
-            line-height: ${layout.lineHeight};
-            flex-shrink: 0;
-          }
-
-          .product-list {
-            font-size: ${layout.smallFontSize}px;
-            line-height: ${layout.lineHeight};
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            flex: 1;
-            overflow: hidden;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            Ship Via: ${formattedOrder.shipVia}
-          </div>
-         
-          <div class="order-id">
-            ${fromAddr.name} Order ID: ${formattedOrder.id}
-          </div>
-         
-          <div class="barcode-wrapper">
-            ${
-              barcodeDataUrl
-                ? `<img src="${barcodeDataUrl}" class="barcode-img" alt="Barcode ${formattedOrder.id}" />`
-                : `<svg id="barcode-${formattedOrder.id}" class="barcode-img"></svg>`
-            }
-          </div>
-         
-          <div class="address-box">
-            <div class="to-name">TO ${formattedOrder.toAddress.name}</div>
-            <div class="address-line">${formattedOrder.toAddress.street}</div>
-            <div class="address-line">${formattedOrder.toAddress.city}</div>
-            <div class="address-line">${formattedOrder.toAddress.state} ${formattedOrder.toAddress.zipCode}</div>
-            <div class="address-line">${formattedOrder.toAddress.phone}</div>
-          </div>
-         
-          <div class="details-grid">
-            <div class="detail-box">
-              <div class="detail-title">From:</div>
-              <div class="detail-line">${fromAddr.name}</div>
-              <div class="detail-line">${fromAddr.street}</div>
-              <div class="detail-line">${fromAddr.city}</div>
-              <div class="detail-line">${fromAddr.state}-${fromAddr.zipCode}</div>
-              <div class="detail-line">Mobile: ${fromAddr.phone}</div>
-            </div>
-           
-            <div class="detail-box">
-              <div class="detail-title">Prepaid Order:</div>
-              <div class="detail-line">Date: ${formattedOrder.orderDate}</div>
-              <div class="detail-line">Weight:</div>
-              <div class="detail-line">No. of Items: ${formattedOrder.totalItems}</div>
-              <div class="detail-line">Source: Instagram</div>
-              <div class="detail-line">Packed By:</div>
-            </div>
-          </div>
-         
-          <div class="product-section">
-            <div class="product-title">Products:</div>
-            <div class="product-list">
-              ${layout.productText}
-            </div>
-          </div>
-        </div>
-        ${
-          !barcodeDataUrl
-            ? `
-        <script>
-          window.onload = function() {
-            JsBarcode("#barcode-${formattedOrder.id}", "${formattedOrder.id}", {
-              format: "CODE128",
-              width: ${layout.barcodeWidth},
-              height: ${layout.barcodeHeight},
-              displayValue: false,
-              margin: 0
-            });
-           
-            setTimeout(() => {
-              window.print();
-              setTimeout(() => window.close(), 500);
-            }, 500);
-          };
-        </script>
-        `
-            : ""
-        }
-      </body>
-    </html>
-  `
-  }
-
-  // IMPROVED PDF GENERATOR with better alignment
-  const downloadBillDataAsPDF = async (billId: string, billData?: any) => {
+  // PDF GENERATOR
+  const downloadBillDataAsPDF = async (
+    billId: string,
+    billData?: any,
+    templateToUse?: TemplateType
+  ) => {
     try {
       let dataToDownload = billData
 
       if (!dataToDownload && billId) {
         const response = await publicApi.get(`/api/printingroute/print-bill/${billId}`, {
-          headers: {
-            "tenent-id": tenentId || "",
-          },
+          headers: { "tenent-id": tenentId || "" },
         })
         dataToDownload = response.data
       }
 
       if (!dataToDownload) {
         console.error("No bill data available for download")
+        alert("No bill data available for PDF generation")
         return
       }
 
-      // Generate EXACT same layout data as print preview
-      const layout = generateUnifiedLayoutData(dataToDownload, selectedTemplate, previewFromAddress)
+      const templateForPdf = templateToUse || selectedTemplate
 
-      // Create PDF with exact template dimensions
+      if (!templateForPdf) {
+        console.error("No template available for PDF generation")
+        alert("Please select a template before generating PDF")
+        return
+      }
+
+      const layout = generateUnifiedLayoutData(dataToDownload, templateForPdf, previewFromAddress)
+      const barcodeDataUrl = await generateBarcodeImage(layout.formattedOrder.id, layout)
+
       const doc = new jsPDF({
-        orientation: layout.templateWidthPt > layout.templateHeightPt ? "landscape" : "portrait",
+        orientation: "portrait",
         unit: "pt",
         format: [layout.templateWidthPt, layout.templateHeightPt],
       })
 
-      doc.setProperties({
-        title: `Bill ${billId}`,
-        subject: `Bill ${billId}`,
-        author: layout.fromAddress.name,
-        creator: "Print Management System",
-      })
-
-      // Generate barcode with EXACT same settings as print
-      const barcodeDataUrl = await generateBarcodeImage(layout.formattedOrder.id, layout)
-
-      // Use EXACT positioning as print layout - start with proper top margin
-      let yPos = layout.marginPt + layout.topPaddingAdjustment
-
-      // Ship Via header - EXACT same styling as print
+      let yPos = layout.marginPt
       doc.setFont("helvetica", "normal")
       doc.setFontSize(layout.baseFontSize)
+
+      // Header
       doc.text(`Ship Via: ${layout.formattedOrder.shipVia}`, layout.marginPt, yPos)
-      yPos += layout.baseFontSize * 1.5
+      yPos += 14
 
-      // Order ID (centered) - EXACT same styling as print
-      const orderText = `${layout.fromAddress.name} Order ID: ${layout.formattedOrder.id}`
-      const textWidth = doc.getTextWidth(orderText)
-      doc.text(orderText, (layout.templateWidthPt - textWidth) / 2, yPos)
-      yPos += layout.baseFontSize * 1.8
+      // Order ID
+      const title = `${layout.fromAddress.name} Order ID: ${layout.formattedOrder.id}`
+      const titleWidth = doc.getTextWidth(title)
+      doc.text(title, (layout.templateWidthPt - titleWidth) / 2, yPos)
+      yPos += 12
 
-      // Add barcode EXACTLY as in print
+      // Barcode
       if (barcodeDataUrl) {
-        const barcodeWidthPt = layout.barcodeWidth * 80 * 0.75
-        const barcodeHeightPt = layout.barcodeHeight * 0.75
+        const barcodeWidth = layout.barcodeWidth * 60
+        const barcodeHeight = layout.barcodeHeight
         doc.addImage(
           barcodeDataUrl,
           "PNG",
-          (layout.templateWidthPt - barcodeWidthPt) / 2,
+          (layout.templateWidthPt - barcodeWidth) / 2,
           yPos,
-          barcodeWidthPt,
-          barcodeHeightPt,
+          barcodeWidth,
+          barcodeHeight
         )
-        yPos += barcodeHeightPt + 12
+        yPos += barcodeHeight + 8
       } else {
-        yPos += 35
+        yPos += layout.barcodeHeight + 8
       }
 
-      // TO Address box - EXACT same layout as print with proper height
+      // TO Address Box
       doc.setLineWidth(layout.borderWidthPt)
       doc.rect(layout.marginPt, yPos, layout.templateWidthPt - 2 * layout.marginPt, layout.toAddressBoxHeight)
 
-      let addressYPos = yPos + layout.paddingPt + 8
+      let addrY = yPos + 12
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(layout.baseFontSize)
-      doc.text(`TO ${layout.formattedOrder.toAddress.name}`, layout.marginPt + layout.paddingPt, addressYPos)
+      doc.setFontSize(layout.titleFontSize)
+      doc.text(`TO ${layout.formattedOrder.toAddress.name}`, layout.marginPt + layout.paddingPt, addrY)
 
       doc.setFont("helvetica", "normal")
       doc.setFontSize(layout.baseFontSize)
-      addressYPos += layout.baseFontSize * layout.lineHeight
+      addrY += 12
 
-      const fullStreet =
-        (dataToDownload.customer_details.flat_no ? dataToDownload.customer_details.flat_no + ", " : "") +
-        layout.formattedOrder.toAddress.street
-      doc.text(fullStreet, layout.marginPt + layout.paddingPt, addressYPos)
-      addressYPos += layout.baseFontSize * layout.lineHeight
-      doc.text(layout.formattedOrder.toAddress.city, layout.marginPt + layout.paddingPt, addressYPos)
-      addressYPos += layout.baseFontSize * layout.lineHeight
-      doc.text(
-        `${layout.formattedOrder.toAddress.state} ${layout.formattedOrder.toAddress.zipCode}`,
-        layout.marginPt + layout.paddingPt,
-        addressYPos,
-      )
-      addressYPos += layout.baseFontSize * layout.lineHeight
-      doc.text(layout.formattedOrder.toAddress.phone, layout.marginPt + layout.paddingPt, addressYPos)
+      const addressMaxWidth = layout.templateWidthPt - (2 * layout.marginPt) - (2 * layout.paddingPt)
+      const streetLines = doc.splitTextToSize(layout.formattedOrder.toAddress.street, addressMaxWidth)
+      streetLines.forEach((line: string) => {
+        doc.text(line, layout.marginPt + layout.paddingPt, addrY)
+        addrY += 10
+      })
+
+      doc.text(layout.formattedOrder.toAddress.city, layout.marginPt + layout.paddingPt, addrY)
+      addrY += 10
+      doc.text(`${layout.formattedOrder.toAddress.state} - ${layout.formattedOrder.toAddress.zipCode}`, layout.marginPt + layout.paddingPt, addrY)
+      addrY += 10
+      doc.text(`Phone: ${layout.formattedOrder.toAddress.phone}`, layout.marginPt + layout.paddingPt, addrY)
 
       yPos += layout.toAddressBoxHeight + layout.sectionSpacing
 
-      // From and Order details (two columns) - EXACT same layout as print
-      const colWidth = (layout.templateWidthPt - 3 * layout.marginPt - layout.sectionSpacing) / 2
+      // FROM + ORDER Details
+      const boxWidth = (layout.templateWidthPt - 3 * layout.marginPt) / 2
 
-      // From address box
-      doc.setLineWidth(layout.borderWidthPt)
-      doc.rect(layout.marginPt, yPos, colWidth, layout.detailBoxHeight)
-      let fromYPos = yPos + layout.paddingPt + 8
+      // FROM Box
+      doc.rect(layout.marginPt, yPos, boxWidth, layout.detailBoxHeight)
+      let fy = yPos + 12
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(layout.baseFontSize)
-      doc.text("From:", layout.marginPt + layout.paddingPt, fromYPos)
+      doc.setFontSize(layout.titleFontSize)
+      doc.text("From:", layout.marginPt + layout.paddingPt, fy)
 
       doc.setFont("helvetica", "normal")
       doc.setFontSize(layout.smallFontSize)
-      fromYPos += layout.baseFontSize * layout.lineHeight
-      doc.text(layout.fromAddress.name, layout.marginPt + layout.paddingPt, fromYPos)
-      fromYPos += layout.smallFontSize * layout.lineHeight
-      doc.text(layout.fromAddress.street, layout.marginPt + layout.paddingPt, fromYPos)
-      fromYPos += layout.smallFontSize * layout.lineHeight
-      doc.text(layout.fromAddress.city, layout.marginPt + layout.paddingPt, fromYPos)
-      fromYPos += layout.smallFontSize * layout.lineHeight
-      doc.text(
-        `${layout.fromAddress.state}-${layout.fromAddress.zipCode}`,
-        layout.marginPt + layout.paddingPt,
-        fromYPos,
-      )
-      fromYPos += layout.smallFontSize * layout.lineHeight
-      doc.text(`Mobile: ${layout.fromAddress.phone}`, layout.marginPt + layout.paddingPt, fromYPos)
+      fy += 12
+      doc.text(layout.fromAddress.name, layout.marginPt + layout.paddingPt, fy)
+      fy += 10
+      doc.text(layout.fromAddress.street, layout.marginPt + layout.paddingPt, fy)
+      fy += 10
+      doc.text(layout.fromAddress.city, layout.marginPt + layout.paddingPt, fy)
+      fy += 10
+      doc.text(`${layout.fromAddress.state}-${layout.fromAddress.zipCode}`, layout.marginPt + layout.paddingPt, fy)
+      fy += 10
+      doc.text(`Mobile: ${layout.fromAddress.phone}`, layout.marginPt + layout.paddingPt, fy)
 
-      // Order details box
-      const rightColX = layout.marginPt + colWidth + layout.sectionSpacing
-      doc.setLineWidth(layout.borderWidthPt)
-      doc.rect(rightColX, yPos, colWidth, layout.detailBoxHeight)
-      let orderYPos = yPos + layout.paddingPt + 8
+      // ORDER Box
+      const rx = layout.marginPt + boxWidth + layout.marginPt
+      doc.rect(rx, yPos, boxWidth, layout.detailBoxHeight)
+      let ry = yPos + 12
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(layout.baseFontSize)
-      doc.text("Prepaid Order:", rightColX + layout.paddingPt, orderYPos)
+      doc.setFontSize(layout.titleFontSize)
+      doc.text("Prepaid Order:", rx + layout.paddingPt, ry)
 
       doc.setFont("helvetica", "normal")
       doc.setFontSize(layout.smallFontSize)
-      orderYPos += layout.baseFontSize * layout.lineHeight
-      doc.text(`Date: ${layout.formattedOrder.orderDate}`, rightColX + layout.paddingPt, orderYPos)
-      orderYPos += layout.smallFontSize * layout.lineHeight
-      doc.text(`Weight:`, rightColX + layout.paddingPt, orderYPos)
-      orderYPos += layout.smallFontSize * layout.lineHeight
-      doc.text(`No. of Items: ${layout.formattedOrder.totalItems}`, rightColX + layout.paddingPt, orderYPos)
-      orderYPos += layout.smallFontSize * layout.lineHeight
-      doc.text("Source: Instagram", rightColX + layout.paddingPt, orderYPos)
-      orderYPos += layout.smallFontSize * layout.lineHeight
-      doc.text("Packed By:", rightColX + layout.paddingPt, orderYPos)
+      ry += 12
+      doc.text(`Date: ${layout.formattedOrder.orderDate}`, rx + layout.paddingPt, ry)
+      ry += 10
+      doc.text(`Weight: ${layout.formattedOrder.weight || "0.5 kg"}`, rx + layout.paddingPt, ry)
+      ry += 10
+      doc.text(`No. of Items: ${layout.formattedOrder.totalItems}`, rx + layout.paddingPt, ry)
+      ry += 10
+      doc.text("Source: Instagram", rx + layout.paddingPt, ry)
+      ry += 10
+      doc.text("Packed By: Team", rx + layout.paddingPt, ry)
 
-      yPos += layout.detailBoxHeight + layout.sectionSpacing + 2 // Extra spacing before product section
+      yPos += layout.detailBoxHeight + layout.sectionSpacing
 
-      // Products section - EXACT same layout as print
+      // Products Box
       const remainingHeight = layout.templateHeightPt - yPos - layout.marginPt
-      doc.setLineWidth(layout.borderWidthPt)
       doc.rect(layout.marginPt, yPos, layout.templateWidthPt - 2 * layout.marginPt, remainingHeight)
 
-      let productYPos = yPos + layout.paddingPt + 8
+      let py = yPos + 12
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(layout.baseFontSize)
-      doc.text("Products:", layout.marginPt + layout.paddingPt, productYPos)
+      doc.setFontSize(layout.titleFontSize)
+      doc.text("Products:", layout.marginPt + layout.paddingPt, py)
 
+      py += 12
       doc.setFont("helvetica", "normal")
       doc.setFontSize(layout.smallFontSize)
-      productYPos += layout.baseFontSize * layout.lineHeight
 
       const maxWidth = layout.templateWidthPt - 2 * layout.marginPt - 2 * layout.paddingPt
-      const lines = doc.splitTextToSize(layout.productText, maxWidth)
+      const productLines = doc.splitTextToSize(layout.productText, maxWidth)
 
-      lines.forEach((line: string) => {
-        if (productYPos < layout.templateHeightPt - layout.marginPt - layout.paddingPt) {
-          doc.text(line, layout.marginPt + layout.paddingPt, productYPos)
-          productYPos += layout.smallFontSize * layout.lineHeight
+      productLines.forEach((line: string) => {
+        if (py < layout.templateHeightPt - layout.marginPt - 5) {
+          doc.text(line, layout.marginPt + layout.paddingPt, py)
+          py += 10
         }
       })
 
-      // Save with exact same filename format as original
-      doc.save(`bill_${selectedTemplate?.name || "default"}_${billId}_${new Date().toISOString().split("T")[0]}.pdf`)
-
-      console.log(
-        `Bill for ${billId} downloaded as PDF with EXACT print preview match using ${selectedTemplate?.name || "default"} template`,
-      )
+      const fileName = `bill_${layout.templateWidth}x${layout.templateHeight}_${layout.formattedOrder.id}_${new Date().toISOString().split("T")[0]}.pdf`
+      doc.save(fileName)
     } catch (error) {
-      console.error("Error downloading bill as PDF:", error)
-      alert("Error generating PDF. Please try again.")
+      console.error("PDF generation error:", error)
+      alert("Failed to generate PDF. Please try again.")
     }
   }
 
-  // IMPROVED BULK PDF GENERATOR with perfect alignment
+  // BULK PDF GENERATOR
   const downloadBulkBillsDataAsPDF = async (bills: BillResponseType[]) => {
     try {
-      // Use the first bill to determine layout (all bills will use same template)
-      const firstBillLayout = generateUnifiedLayoutData(bills[0], selectedTemplate, previewFromAddress)
-
-      const doc = new jsPDF({
-        orientation: firstBillLayout.templateWidthPt > firstBillLayout.templateHeightPt ? "landscape" : "portrait",
-        unit: "pt",
-        format: [firstBillLayout.templateWidthPt, firstBillLayout.templateHeightPt],
-      })
-
-      doc.setProperties({
-        title: `Bulk Shipping Labels`,
-        subject: `Bulk Shipping Labels for ${bills.length} orders`,
-        author: firstBillLayout.fromAddress.name,
-        creator: "Print Management System",
-      })
-
-      // Generate each bill as a separate page with EXACT same layout as print preview
-      for (let index = 0; index < bills.length; index++) {
-        const bill = bills[index]
-
-        if (index > 0) {
-          doc.addPage()
-        }
-
-        // Generate EXACT same layout data as print preview for this bill
-        const layout = generateUnifiedLayoutData(bill, selectedTemplate, previewFromAddress)
-
-        // Use EXACT positioning as print layout
-        let yPos = layout.marginPt + layout.topPaddingAdjustment
-
-        // Ship Via header
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(layout.baseFontSize)
-        doc.text(`Ship Via: ${layout.formattedOrder.shipVia}`, layout.marginPt, yPos)
-        yPos += layout.baseFontSize * 1.5
-
-        // Order ID (centered)
-        const orderText = `${layout.fromAddress.name} Order ID: ${bill.bill_details.bill_no}`
-        const textWidth = doc.getTextWidth(orderText)
-        doc.text(orderText, (layout.templateWidthPt - textWidth) / 2, yPos)
-        yPos += layout.baseFontSize * 1.8
-
-        // Generate and add barcode EXACTLY as in print
-        try {
-          const barcodeDataUrl = await generateBarcodeImage(bill.bill_details.bill_no.toString(), layout)
-          if (barcodeDataUrl) {
-            const barcodeWidthPt = layout.barcodeWidth * 80 * 0.75
-            const barcodeHeightPt = layout.barcodeHeight * 0.75
-            doc.addImage(
-              barcodeDataUrl,
-              "PNG",
-              (layout.templateWidthPt - barcodeWidthPt) / 2,
-              yPos,
-              barcodeWidthPt,
-              barcodeHeightPt,
-            )
-            yPos += barcodeHeightPt + 12
-          } else {
-            // Fallback to text
-            doc.setFont("helvetica", "normal")
-            doc.setFontSize(layout.smallFontSize)
-            const barcodeText = `[BARCODE: ${bill.bill_details.bill_no}]`
-            const textWidth = doc.getTextWidth(barcodeText)
-            doc.text(barcodeText, (layout.templateWidthPt - textWidth) / 2, yPos + 15)
-            yPos += 35
-          }
-        } catch (error) {
-          console.warn("Barcode generation failed, using text fallback:", error)
-          doc.setFont("helvetica", "normal")
-          doc.setFontSize(layout.smallFontSize)
-          const barcodeText = `[BARCODE: ${bill.bill_details.bill_no}]`
-          const textWidth = doc.getTextWidth(barcodeText)
-          doc.text(barcodeText, (layout.templateWidthPt - textWidth) / 2, yPos + 15)
-          yPos += 35
-        }
-
-        // TO Address box with proper height
-        doc.setLineWidth(layout.borderWidthPt)
-        doc.rect(layout.marginPt, yPos, layout.templateWidthPt - 2 * layout.marginPt, layout.toAddressBoxHeight)
-
-        let addressYPos = yPos + layout.paddingPt + 8
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(layout.baseFontSize)
-        doc.text(`TO ${layout.formattedOrder.toAddress.name}`, layout.marginPt + layout.paddingPt, addressYPos)
-
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(layout.baseFontSize)
-        addressYPos += layout.baseFontSize * layout.lineHeight
-
-        const fullStreet =
-          (bill.customer_details.flat_no ? bill.customer_details.flat_no + ", " : "") + bill.customer_details.street
-        doc.text(fullStreet, layout.marginPt + layout.paddingPt, addressYPos)
-        addressYPos += layout.baseFontSize * layout.lineHeight
-        doc.text(layout.formattedOrder.toAddress.city, layout.marginPt + layout.paddingPt, addressYPos)
-        addressYPos += layout.baseFontSize * layout.lineHeight
-        doc.text(
-          `${layout.formattedOrder.toAddress.state} ${layout.formattedOrder.toAddress.zipCode}`,
-          layout.marginPt + layout.paddingPt,
-          addressYPos,
-        )
-        addressYPos += layout.baseFontSize * layout.lineHeight
-        doc.text(layout.formattedOrder.toAddress.phone, layout.marginPt + layout.paddingPt, addressYPos)
-
-        yPos += layout.toAddressBoxHeight + layout.sectionSpacing
-
-        // From and Order details with proper spacing
-        const colWidth = (layout.templateWidthPt - 3 * layout.marginPt - layout.sectionSpacing) / 2
-
-        // From address box
-        doc.setLineWidth(layout.borderWidthPt)
-        doc.rect(layout.marginPt, yPos, colWidth, layout.detailBoxHeight)
-        let fromYPos = yPos + layout.paddingPt + 8
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(layout.baseFontSize)
-        doc.text("From:", layout.marginPt + layout.paddingPt, fromYPos)
-
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(layout.smallFontSize)
-        fromYPos += layout.baseFontSize * layout.lineHeight
-        doc.text(layout.fromAddress.name, layout.marginPt + layout.paddingPt, fromYPos)
-        fromYPos += layout.smallFontSize * layout.lineHeight
-        doc.text(layout.fromAddress.street, layout.marginPt + layout.paddingPt, fromYPos)
-        fromYPos += layout.smallFontSize * layout.lineHeight
-        doc.text(layout.fromAddress.city, layout.marginPt + layout.paddingPt, fromYPos)
-        fromYPos += layout.smallFontSize * layout.lineHeight
-        doc.text(
-          `${layout.fromAddress.state}-${layout.fromAddress.zipCode}`,
-          layout.marginPt + layout.paddingPt,
-          fromYPos,
-        )
-        fromYPos += layout.smallFontSize * layout.lineHeight
-        doc.text(`Mobile: ${layout.fromAddress.phone}`, layout.marginPt + layout.paddingPt, fromYPos)
-
-        // Order details box
-        const rightColX = layout.marginPt + colWidth + layout.sectionSpacing
-        doc.setLineWidth(layout.borderWidthPt)
-        doc.rect(rightColX, yPos, colWidth, layout.detailBoxHeight)
-        let orderYPos = yPos + layout.paddingPt + 8
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(layout.baseFontSize)
-        doc.text("Prepaid Order:", rightColX + layout.paddingPt, orderYPos)
-
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(layout.smallFontSize)
-        orderYPos += layout.baseFontSize * layout.lineHeight
-        doc.text(`Date: ${layout.formattedOrder.orderDate}`, rightColX + layout.paddingPt, orderYPos)
-        orderYPos += layout.smallFontSize * layout.lineHeight
-        doc.text(`Weight: ${bill.shipping_details?.weight || ""}`, rightColX + layout.paddingPt, orderYPos)
-        orderYPos += layout.smallFontSize * layout.lineHeight
-        doc.text(`No. of Items: ${layout.formattedOrder.totalItems}`, rightColX + layout.paddingPt, orderYPos)
-        orderYPos += layout.smallFontSize * layout.lineHeight
-        doc.text("Source: Instagram", rightColX + layout.paddingPt, orderYPos)
-        orderYPos += layout.smallFontSize * layout.lineHeight
-        doc.text("Packed By: ", rightColX + layout.paddingPt, orderYPos)
-        yPos += layout.detailBoxHeight + layout.sectionSpacing + 2 // Extra spacing before product section
-       
-
-        // Products section with proper spacing
-        const remainingHeight = layout.templateWidthPt - yPos - layout.marginPt
-        doc.setLineWidth(layout.borderWidthPt)
-        doc.rect(layout.marginPt, yPos, layout.templateWidthPt - 2 * layout.marginPt, remainingHeight)
-
-        let productYPos = yPos + layout.paddingPt + 8
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(layout.baseFontSize)
-        doc.text("Products:", layout.marginPt + layout.paddingPt, productYPos)
-
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(layout.smallFontSize)
-        productYPos += layout.baseFontSize * layout.lineHeight
-
-        const maxWidth = layout.templateWidthPt - 2 * layout.marginPt - 2 * layout.paddingPt
-        const lines = doc.splitTextToSize(layout.productText, maxWidth)
-
-        lines.forEach((line: string) => {
-          if (productYPos < layout.templateHeightPt - layout.marginPt - layout.paddingPt) {
-            doc.text(line, layout.marginPt + layout.paddingPt, productYPos)
-            productYPos += layout.smallFontSize * layout.lineHeight
-          }
-        })
+      if (bills.length === 0) {
+        console.error("No bills available for bulk PDF generation")
+        return
       }
 
-      // Save the PDF
-      doc.save(
-        `bulk_shipping_labels_${selectedTemplate?.name || "default"}_${new Date().toISOString().split("T")[0]}.pdf`,
-      )
+      const layout = generateUnifiedLayoutData(bills[0], selectedTemplate, previewFromAddress)
 
-      console.log(
-        `Bulk shipping labels (${bills.length} labels) downloaded as PDF with EXACT print preview match using ${selectedTemplate?.name || "default"} template`,
-      )
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: [layout.templateWidthPt, layout.templateHeightPt],
+      })
+
+      for (let index = 0; index < bills.length; index++) {
+        const bill = bills[index]
+        const layout = generateUnifiedLayoutData(bill, selectedTemplate, previewFromAddress)
+
+        let yPos = layout.marginPt
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(layout.baseFontSize)
+
+        doc.text(`Ship Via: ${layout.formattedOrder.shipVia}`, layout.marginPt, yPos)
+        yPos += 14
+
+        const title = `${layout.fromAddress.name} Order ID: ${layout.formattedOrder.id}`
+        const titleWidth = doc.getTextWidth(title)
+        doc.text(title, (layout.templateWidthPt - titleWidth) / 2, yPos)
+        yPos += 12
+
+        const barcodeDataUrl = await generateBarcodeImage(layout.formattedOrder.id, layout)
+        if (barcodeDataUrl) {
+          const barcodeWidth = layout.barcodeWidth * 60
+          const barcodeHeight = layout.barcodeHeight
+          doc.addImage(
+            barcodeDataUrl,
+            "PNG",
+            (layout.templateWidthPt - barcodeWidth) / 2,
+            yPos,
+            barcodeWidth,
+            barcodeHeight
+          )
+          yPos += barcodeHeight + 8
+        } else {
+          yPos += layout.barcodeHeight + 8
+        }
+
+        const reducedToAddressBoxHeight = layout.toAddressBoxHeight - 12
+        doc.setLineWidth(layout.borderWidthPt)
+        doc.rect(layout.marginPt, yPos, layout.templateWidthPt - 2 * layout.marginPt, reducedToAddressBoxHeight)
+
+        let addrY = yPos + 10
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(layout.titleFontSize)
+        doc.text(`TO ${layout.formattedOrder.toAddress.name}`, layout.marginPt + layout.paddingPt, addrY)
+
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(layout.baseFontSize)
+        addrY += 10
+
+        const addressMaxWidth = layout.templateWidthPt - (2 * layout.marginPt) - (2 * layout.paddingPt)
+        const streetLines = doc.splitTextToSize(layout.formattedOrder.toAddress.street, addressMaxWidth)
+        streetLines.forEach((line: string) => {
+          doc.text(line, layout.marginPt + layout.paddingPt, addrY)
+          addrY += 9
+        })
+
+        doc.text(layout.formattedOrder.toAddress.city, layout.marginPt + layout.paddingPt, addrY)
+        addrY += 9
+        doc.text(`${layout.formattedOrder.toAddress.state} - ${layout.formattedOrder.toAddress.zipCode}`, layout.marginPt + layout.paddingPt, addrY)
+        addrY += 9
+        doc.text(`Phone: ${layout.formattedOrder.toAddress.phone}`, layout.marginPt + layout.paddingPt, addrY)
+
+        yPos += reducedToAddressBoxHeight + layout.sectionSpacing
+
+        const boxWidth = (layout.templateWidthPt - 3 * layout.marginPt) / 2
+
+        doc.rect(layout.marginPt, yPos, boxWidth, layout.detailBoxHeight)
+        let fy = yPos + 12
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(layout.titleFontSize)
+        doc.text("From:", layout.marginPt + layout.paddingPt, fy)
+
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(layout.smallFontSize)
+        fy += 12
+        doc.text(layout.fromAddress.name, layout.marginPt + layout.paddingPt, fy)
+        fy += 10
+        doc.text(layout.fromAddress.street, layout.marginPt + layout.paddingPt, fy)
+        fy += 10
+        doc.text(layout.fromAddress.city, layout.marginPt + layout.paddingPt, fy)
+        fy += 10
+        doc.text(`${layout.fromAddress.state}-${layout.fromAddress.zipCode}`, layout.marginPt + layout.paddingPt, fy)
+        fy += 10
+        doc.text(`Mobile: ${layout.fromAddress.phone}`, layout.marginPt + layout.paddingPt, fy)
+
+        const rx = layout.marginPt + boxWidth + layout.marginPt
+        doc.rect(rx, yPos, boxWidth, layout.detailBoxHeight)
+        let ry = yPos + 12
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(layout.titleFontSize)
+        doc.text("Prepaid Order:", rx + layout.paddingPt, ry)
+
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(layout.smallFontSize)
+        ry += 12
+        doc.text(`Date: ${layout.formattedOrder.orderDate}`, rx + layout.paddingPt, ry)
+        ry += 10
+        doc.text(`Weight: ${layout.formattedOrder.weight || "0.5 kg"}`, rx + layout.paddingPt, ry)
+        ry += 10
+        doc.text(`No. of Items: ${layout.formattedOrder.totalItems}`, rx + layout.paddingPt, ry)
+        ry += 10
+        doc.text("Source: Instagram", rx + layout.paddingPt, ry)
+        ry += 10
+        doc.text("Packed By: Team", rx + layout.paddingPt, ry)
+
+        yPos += layout.detailBoxHeight + layout.sectionSpacing + 6
+
+        const remainingHeight = layout.templateHeightPt - yPos - layout.marginPt + 6
+        doc.rect(layout.marginPt, yPos, layout.templateWidthPt - 2 * layout.marginPt, remainingHeight)
+
+        let py = yPos + 12
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(layout.titleFontSize)
+        doc.text("Products:", layout.marginPt + layout.paddingPt, py)
+
+        py += 12
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(layout.smallFontSize)
+
+        const maxWidth = layout.templateWidthPt - 2 * layout.marginPt - 2 * layout.paddingPt
+        const productLines = doc.splitTextToSize(layout.productText, maxWidth)
+
+        productLines.forEach((line: string) => {
+          if (py < layout.templateHeightPt - layout.marginPt - 5) {
+            doc.text(line, layout.marginPt + layout.paddingPt, py)
+            py += 10
+          }
+        })
+
+        if (index < bills.length - 1) {
+          doc.addPage()
+        }
+      }
+
+      const fileName = `bulk_bills_${layout.templateWidth}x${layout.templateHeight}_${selectedTemplate?.name || "default"}_${new Date().toISOString().split("T")[0]}.pdf`
+      doc.save(fileName)
     } catch (error) {
       console.error("Error downloading bulk shipping labels as PDF:", error)
       alert("Error generating bulk PDF. Please try again.")
@@ -1257,26 +935,28 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
 
   const handlePrintBill = async (billId: string) => {
     if (!billId) {
-      alert("Please enter a bill ID")
+      alert('Please enter a bill ID')
       return
     }
-
+    if (!selectedTemplate) {
+      alert("Please select a template before printing")
+      return
+    }
     try {
       setIsLoading(true)
 
       const response = await publicApi.get(`/api/printingroute/print-bill/${billId}`, {
         headers: {
-          "tenent-id": tenentId || "",
-        },
+          'tenent-id': tenentId || ''
+        }
       })
 
       if (!response.data) {
-        throw new Error("No data returned from server")
+        throw new Error('No data returned from server')
       }
 
       const responseOrder: BillResponseType = response.data
 
-      // Format order data
       const formattedOrder: OrderType = {
         id: responseOrder.bill_id,
         name: responseOrder.customer_details.name,
@@ -1286,79 +966,459 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
           city: responseOrder.customer_details.district,
           state: responseOrder.customer_details.state,
           zipCode: responseOrder.customer_details.pincode,
-          phone: responseOrder.customer_details.phone,
+          phone: responseOrder.customer_details.phone
         },
         isPrepaid: true,
         orderDate: `${responseOrder.bill_details.date}, ${responseOrder.bill_details.time}`,
-        shipVia: responseOrder.shipping_details?.method_name || "Standard Shipping",
-        products: responseOrder.product_details.map((product) => ({
+        shipVia: responseOrder.shipping_details?.method_name || 'Standard Shipping',
+        products: responseOrder.product_details.map(product => ({
           name: product.productName,
-          quantity: product.quantity,
+          quantity: product.quantity
         })),
         totalItems: responseOrder.product_details.reduce((total, product) => total + product.quantity, 0),
-        packedBy: "Team",
-        weight: responseOrder.shipping_details?.weight || "0.5 kg",
+        packedBy: 'Team',
+        weight: responseOrder.shipping_details?.weight || '0.5 kg'
       }
 
       setCurrentOrder(formattedOrder)
 
-      // Add to print history
-      const updatedHistory = [billId, ...printHistory.filter((id) => id !== billId)].slice(0, 10)
+      const updatedHistory = [billId, ...printHistory.filter(id => id !== billId)].slice(0, 10)
       setPrintHistory(updatedHistory)
-      localStorage.setItem("printHistory", JSON.stringify(updatedHistory))
+      localStorage.setItem('printHistory', JSON.stringify(updatedHistory))
 
-      // Generate UNIFIED layout data for EXACT consistency
-      const layout = generateUnifiedLayoutData(responseOrder, selectedTemplate, previewFromAddress)
+      const templateWidth = (selectedTemplate?.width || 384) / 96
+      const templateHeight = (selectedTemplate?.height || 384) / 96
 
-      // Generate print content using UNIFIED system
-      const printContent = generatePrintContent(layout)
-      const printWindow = window.open("", "_blank")
+      const getFontSizes = (template: TemplateType | null) => {
+        if (template?.id === '2x4' || (template?.width && template.width <= 192)) {
+          return {
+            baseFontSize: 5,
+            titleFontSize: 6,
+            smallFontSize: 4,
+            letterSpacing: '-0.4px',
+            lineHeight: 0.8,
+            padding: '1px',
+            borderWidth: '0.5px'
+          }
+        }
+        else if (template?.id === '4x4' || (template?.width && template.width <= 384)) {
+          return {
+            baseFontSize: 11,
+            titleFontSize: 12,
+            smallFontSize: 10,
+            letterSpacing: 'normal',
+            lineHeight: 1.2,
+            padding: '4px',
+            borderWidth: '1px'
+          }
+        }
+        else {
+          return {
+            baseFontSize: 14,
+            titleFontSize: 16,
+            smallFontSize: 12,
+            letterSpacing: 'normal',
+            lineHeight: 1.3,
+            padding: '6px',
+            borderWidth: '1px'
+          }
+        }
+      }
 
+      const barcodeWidth = selectedTemplate?.id === '2x4' ? 0.8 : 1.2
+      const barcodeHeight = selectedTemplate?.id === '2x4' ? 25 : 40
+
+      const fontSizes = getFontSizes(selectedTemplate)
+
+      const formatProductsList = (products: Array<{ productName?: string; name?: string; quantity: number }>): string => {
+        if (!products || products.length === 0) {
+          return "No products"
+        }
+
+        const totalProducts = products.length
+
+        let fontSize = fontSizes.smallFontSize
+        let lineHeight = fontSizes.lineHeight
+
+        if (totalProducts > 6) {
+          fontSize = Math.max(fontSize - 1, 3)
+          lineHeight = Math.max(lineHeight - 0.1, 0.7)
+        }
+
+        if (totalProducts > 10) {
+          fontSize = Math.max(fontSize - 1, 2)
+          lineHeight = Math.max(lineHeight - 0.1, 0.6)
+        }
+
+        if (selectedTemplate?.id === '2x4') {
+          return products.map(product => {
+            const productName = product.productName || product.name
+            const truncatedName = productName && productName.length > 10
+              ? productName.substring(0, 9) + '…'
+              : productName
+            return `${truncatedName} × ${product.quantity}`
+          }).join(', ')
+        }
+
+        return products.map(product => {
+          const productName = product.productName || product.name
+          return `${productName} × ${product.quantity}`
+        }).join(', ')
+      }
+
+      const printWindow = window.open('', '_blank')
       if (!printWindow) {
-        alert("Unable to open print window. Please disable your pop-up blocker and try again.")
+        alert('Unable to open print window. Please disable your pop-up blocker and try again.')
         return
       }
 
       printWindow.document.open()
-      printWindow.document.write(printContent)
-      printWindow.document.close()
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Print Label - ${billId}</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+            <style>
+              @media print {
+                @page {
+                  size: ${templateWidth}in ${templateHeight}in;
+                  margin: 0;
+                }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  width: ${selectedTemplate?.width || 384}px !important;
+                  height: ${selectedTemplate?.height || 384}px !important;
+                  max-height: ${selectedTemplate?.height || 384}px !important;
+                  overflow: hidden;
+                }
+                .container {
+                  width: 100% !important;
+                  height: 100% !important;
+                  page-break-after: avoid;
+                  overflow: hidden !important;
+                  box-sizing: border-box;
+                  padding: ${fontSizes.padding} !important;
+                  padding-top: 8px !important;
+                  padding-left: 12px !important;
+                  padding-right: 12px !important;
+                  padding-bottom: 8px !important;
+                  border: 0 !important;
+                }
+              }
 
-      // Auto-download bill data as PDF after successful print setup
+              html, body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                font-size: ${fontSizes.baseFontSize}px;
+                line-height: ${fontSizes.lineHeight};
+                font-weight: 500;
+                letter-spacing: ${fontSizes.letterSpacing};
+              }
+
+              .container {
+                width: ${selectedTemplate?.width || 384}px;
+                height: ${selectedTemplate?.height || 384}px;
+                margin: 0 auto;
+                padding: ${fontSizes.padding};
+                padding-top: 8px;
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-bottom: 8px;
+                box-sizing: border-box;
+                position: relative;
+                border: 0;
+                overflow: hidden;
+              }
+
+              .header {
+                font-size: ${fontSizes.titleFontSize}px;
+                font-weight: bold;
+                margin-top: 5px;
+                margin-bottom: 1px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .order-id {
+                font-size: ${fontSizes.titleFontSize}px;
+                font-weight: bold;
+                margin-bottom: 2px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .barcode-wrapper {
+                text-align: center;
+                margin: 4px auto;
+                height: ${barcodeHeight}px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 90%;
+              }
+
+              .barcode-img {
+                max-height: 100%;
+                max-width: 100%;
+              }
+
+              .address-box {
+                border: ${fontSizes.borderWidth} solid #000;
+                padding: ${fontSizes.padding};
+                margin-bottom: 2px;
+                min-height: 80px;
+                overflow: hidden;
+              }
+
+              .to-name {
+                font-weight: bold;
+                font-size: ${fontSizes.titleFontSize}px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .address-line {
+                white-space: normal;
+                word-wrap: break-word;
+                line-height: ${fontSizes.lineHeight};
+                font-size: ${fontSizes.baseFontSize}px;
+                overflow: hidden;
+              }
+
+              .details-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2px;
+                margin-bottom: 2px;
+              }
+
+              .detail-box {
+                border: ${fontSizes.borderWidth} solid #000;
+                padding: ${fontSizes.padding};
+                min-height: 65px;
+                overflow: hidden;
+              }
+
+              .detail-title {
+                font-weight: bold;
+                font-size: ${fontSizes.titleFontSize}px;
+              }
+
+              .product-section {
+                border: ${fontSizes.borderWidth} solid #000;
+                padding: ${fontSizes.padding};
+                margin-top: 2px;
+                min-height: 50px;
+                overflow: hidden;
+              }
+
+              .product-title {
+                font-weight: bold;
+                font-size: ${fontSizes.titleFontSize}px;
+                margin-bottom: 1px;
+              }
+
+              .product-list {
+                white-space: normal;
+                word-wrap: break-word;
+                line-height: ${formattedOrder.products.length > 6 ? Math.max(fontSizes.lineHeight - 0.2, 0.7) : fontSizes.lineHeight};
+                font-size: ${formattedOrder.products.length > 6 ? Math.max(fontSizes.smallFontSize - 1, 3) : fontSizes.smallFontSize}px;
+                overflow: hidden;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                Ship Via: ${formattedOrder.shipVia}
+              </div>
+
+              <div class="order-id">
+                ${previewFromAddress.name} Order ID: ${formattedOrder.id}
+              </div>
+
+              <div class="barcode-wrapper">
+                <svg id="barcode-${formattedOrder.id}" class="barcode-img"></svg>
+              </div>
+
+              <div class="address-box">
+                <div class="to-name">TO ${formattedOrder.toAddress.name}</div>
+                <div class="address-line">${formattedOrder.toAddress.street}</div>
+                <div class="address-line">${formattedOrder.toAddress.city}</div>
+                <div class="address-line">${formattedOrder.toAddress.state} ${formattedOrder.toAddress.zipCode}</div>
+                <div class="address-line">${formattedOrder.toAddress.phone}</div>
+              </div>
+
+              <div class="details-grid">
+                <div class="detail-box">
+                  <div class="detail-title">From:</div>
+                  <div class="address-line">${previewFromAddress.name}</div>
+                  <div class="address-line">${previewFromAddress.street}</div>
+                  <div class="address-line">${previewFromAddress.city}</div>
+                  <div class="address-line">${previewFromAddress.state}-${previewFromAddress.zipCode}</div>
+                  <div class="address-line">Mobile: ${previewFromAddress.phone}</div>
+                </div>
+
+                <div class="detail-box">
+                  <div class="detail-title">
+                    Prepaid Order:
+                  </div>
+                  <div class="address-line">Date: ${formattedOrder.orderDate}</div>
+                  <div class="address-line">Weight: </div>
+                  <div class="address-line">No. of Items: ${formattedOrder.totalItems}</div>
+                  <div class="address-line">Source: Instagram</div>
+                  <div class="address-line">Packed By: </div>
+                </div>
+              </div>
+
+              <div class="product-section">
+                <div class="product-title">Products:</div>
+                <div class="product-list">
+                  ${formatProductsList(formattedOrder.products)}
+                </div>
+              </div>
+            </div>
+            <script>
+              window.onload = function() {
+                JsBarcode("#barcode-${formattedOrder.id}", "${formattedOrder.id}", {
+                  format: "CODE128",
+                  width: ${barcodeWidth},
+                  height: ${barcodeHeight},
+                  displayValue: false,
+                  margin: 0
+                });
+
+                setTimeout(() => {
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
       setTimeout(() => {
-        downloadBillDataAsPDF(billId, responseOrder)
+        downloadBillDataAsPDF(billId, responseOrder, selectedTemplate)
       }, 1000)
     } catch (error: any) {
-      alert(`Error: ${error.message || "Failed to print bill. Please try again."}`)
-      console.error("Print error:", error)
+      alert(`Error: ${error.message || 'Failed to print bill. Please try again.'}`)
+      console.error('Print error:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleBulkPrint = async () => {
-    if (!isAddressSaved) {
-      alert("Please enter your shipping from address before printing in bulk")
+  // Open Bulk Preview Function
+  const openBulkPreview = async () => {
+    if (!isAddressSaved || !selectedTemplate) {
+      alert('Please add your address and select a template first')
       return
     }
 
     try {
       setIsLoading(true)
-      const response = await publicApi.get("/api/printingroute/bulkPrinting", {
+      const resp = await publicApi.get('/api/printingroute/bulkPrinting', {
+        headers: { 'tenent-id': tenentId || '' },
+        params: { dryRun: 1, limit: 50 }
+      })
+
+      const { aggregatedProducts = [], totals = { totalBills: 0, totalItems: 0 } } = resp.data || {}
+      setBulkPreviewData({ aggregatedProducts, totals })
+      setShowBulkPreview(true)
+    } catch (e: any) {
+      alert(e?.response?.data?.error || e.message || 'Failed to load preview')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Proceed with Actual Bulk Print
+  const proceedBulkPrint = async () => {
+    setShowBulkPreview(false)
+    await handleBulkPrint()
+  }
+
+  // Download Product Summary as PDF
+  const downloadProductSummaryPDF = () => {
+    const { aggregatedProducts, totals } = bulkPreviewData
+
+    if (!aggregatedProducts.length) {
+      alert("No product data available to download.")
+      return
+    }
+
+    const doc = new jsPDF()
+
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(16)
+    doc.text("Bulk Print Product Summary", 20, 20)
+
+    doc.setFontSize(12)
+    doc.setFont("helvetica", "normal")
+    doc.text(`Total Orders: ${totals.totalBills}`, 20, 35)
+    doc.text(`Total Product Quantity: ${totals.totalItems}`, 20, 45)
+
+    let y = 60
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(11)
+    doc.text("Product", 20, y)
+    doc.text("Quantity", 160, y)
+
+    // Underline header row
+    doc.setLineWidth(0.5)
+    doc.line(20, y + 2, 190, y + 2)
+
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(10)
+    y += 12
+
+    aggregatedProducts.forEach((item) => {
+      if (y > 270) {
+        doc.addPage()
+        y = 20
+      }
+      doc.text(item.productName, 20, y)
+      doc.text(item.quantity.toString(), 160, y)
+      y += 8
+    })
+
+    const fileName = `Bulk_Summary_${new Date().toISOString().split("T")[0]}.pdf`
+    doc.save(fileName)
+  }
+
+  const handleBulkPrint = async () => {
+    if (!isAddressSaved) {
+      alert('Please enter your shipping from address before printing in bulk')
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const response = await publicApi.get('/api/printingroute/bulkPrinting', {
         headers: {
-          "tenent-id": tenentId || "",
-        },
+          'tenent-id': tenentId || ''
+        }
       })
 
       if (!response.data.bills || response.data.bills.length === 0) {
-        alert("No bills available for printing")
+        alert('No bills available for printing')
         return
       }
 
       const printContent = generateBulkPrintContent(response.data.bills)
-      const printWindow = window.open("", "_blank")
+      const printWindow = window.open('', '_blank')
 
       if (!printWindow) {
-        alert("Unable to open print window. Please disable your pop-up blocker and try again.")
+        alert('Unable to open print window. Please disable your pop-up blocker and try again.')
         return
       }
 
@@ -1366,7 +1426,7 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
       printWindow.document.write(printContent)
       printWindow.document.close()
 
-      printWindow.onload = () => {
+      printWindow.onload = function () {
         setTimeout(() => {
           try {
             printWindow.focus()
@@ -1377,8 +1437,6 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
             alert("There was an error while trying to print. Please try again.")
           } finally {
             printWindow.close()
-
-            // Auto-download all bills data as PDF after bulk print
             setTimeout(() => {
               downloadBulkBillsDataAsPDF(response.data.bills)
             }, 1000)
@@ -1386,324 +1444,376 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
         }, 500)
       }
     } catch (error: any) {
-      alert(`Error: ${error.message || "Error during printing. Please try again."}`)
-      console.error("Bulk print error:", error)
+      alert(`Error: ${error.message || 'Error during printing. Please try again.'}`)
+      console.error('Bulk print error:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // IMPROVED BULK PRINT CONTENT GENERATOR with perfect box alignment
   const generateBulkPrintContent = (bills: BillResponseType[]) => {
-    // Use first bill to determine template settings (all bills use same template)
-    const firstLayout = generateUnifiedLayoutData(bills[0], selectedTemplate, previewFromAddress)
+    const templateWidth = (selectedTemplate?.width || 384) / 96
+    const templateHeight = (selectedTemplate?.height || 384) / 96
 
-    const styles = `
-     <style>
-       @media print {
-         @page {
-           size: ${firstLayout.templateWidthPt / 72}in ${firstLayout.templateHeightPt / 72}in;
-           margin: 0;
-         }
-         body {
-           margin: 0 !important;
-           padding: 0 !important;
-           width: ${firstLayout.templateWidth}px !important;
-           height: ${firstLayout.templateHeight}px !important;
-           max-height: ${firstLayout.templateHeight}px !important;
-           overflow: hidden !important;
-         }
-         .page-container {
-           width: 100% !important;
-           height: 100% !important;
-           page-break-after: always;
-           overflow: hidden !important;
-           box-sizing: border-box;
-         }
-         .container {
-           width: 100% !important;
-           height: 100% !important;
-           page-break-after: always;
-           overflow: hidden !important;
-           box-sizing: border-box;
-           padding: ${firstLayout.paddingPx}px !important;
-           border: 0 !important;
-           display: flex !important;
-           flex-direction: column !important;
-         }
-       }
-       
-       * {
-         box-sizing: border-box;
-       }
-       
-       html, body {
-         margin: 0;
-         padding: 0;
-         font-family: Arial, sans-serif;
-         font-size: ${firstLayout.baseFontSize}px;
-         line-height: ${firstLayout.lineHeight};
-         font-weight: normal;
-         letter-spacing: ${firstLayout.letterSpacing};
-       }
-       
-       .page-container {
-         width: ${firstLayout.templateWidth}px;
-         height: ${firstLayout.templateHeight}px;
-         page-break-after: always;
-         margin: 0 auto;
-         box-sizing: border-box;
-         position: relative;
-       }
-       
-       .container {
-         width: ${firstLayout.templateWidth}px;
-         height: ${firstLayout.templateHeight}px;
-         margin: 0 auto;
-         padding: ${firstLayout.paddingPx}px;
-         box-sizing: border-box;
-         position: relative;
-         border: 0;
-         display: flex;
-         flex-direction: column;
-       }
-       
-       .header {
-         font-size: ${firstLayout.baseFontSize}px;
-         font-weight: normal;
-         margin-bottom: 4px;
-         text-align: left;
-         flex-shrink: 0;
-       }
-       
-       .order-id {
-         font-size: ${firstLayout.baseFontSize}px;
-         font-weight: normal;
-         margin-bottom: 6px;
-         text-align: center;
-         flex-shrink: 0;
-       }
-       
-       .barcode-wrapper {
-         text-align: center;
-         margin: 6px auto 8px auto;
-         height: ${firstLayout.barcodeHeight}px;
-         display: flex;
-         justify-content: center;
-         align-items: center;
-         width: 100%;
-         flex-shrink: 0;
-       }
-       
-       .barcode-img {
-         max-height: 100%;
-         max-width: 90%;
-       }
-       
-       .address-box {
-         border: ${firstLayout.borderWidthPx}px solid #000;
-         padding: ${firstLayout.paddingPx}px;
-         margin-bottom: ${firstLayout.sectionSpacing}px;
-         height: ${firstLayout.toAddressBoxHeight}px;
-         overflow: hidden;
-         flex-shrink: 0;
-         display: flex;
-         flex-direction: column;
-         justify-content: flex-start;
-       }
-       
-       .to-name {
-         font-weight: bold;
-         font-size: ${firstLayout.baseFontSize}px;
-         margin-bottom: 2px;
-         line-height: ${firstLayout.lineHeight};
-         white-space: nowrap;
-         overflow: hidden;
-         text-overflow: ellipsis;
-       }
-       
-       .address-line {
-         font-size: ${firstLayout.baseFontSize}px;
-         line-height: ${firstLayout.lineHeight};
-         margin-bottom: 1px;
-         white-space: nowrap;
-         overflow: hidden;
-         text-overflow: ellipsis;
-       }
-       
-       .details-grid {
-         display: grid;
-         grid-template-columns: 1fr 1fr;
-         gap: ${firstLayout.sectionSpacing}px;
-         margin-bottom: ${firstLayout.sectionSpacing}px;
-         flex-shrink: 0;
-       }
-       
-       .detail-box {
-         border: ${firstLayout.borderWidthPx}px solid #000;
-         padding: ${firstLayout.paddingPx}px;
-         height: ${firstLayout.detailBoxHeight}px;
-         overflow: hidden;
-         display: flex;
-         flex-direction: column;
-         justify-content: flex-start;
-       }
-       
-       .detail-title {
-         font-weight: bold;
-         font-size: ${firstLayout.baseFontSize}px;
-         margin-bottom: 2px;
-         line-height: ${firstLayout.lineHeight};
-       }
-       
-       .detail-line {
-         font-size: ${firstLayout.smallFontSize}px;
-         line-height: ${firstLayout.lineHeight};
-         margin-bottom: 1px;
-         white-space: nowrap;
-         overflow: hidden;
-         text-overflow: ellipsis;
-       }
-
-       .product-section {
-         border: ${firstLayout.borderWidthPx}px solid #000;
-         padding: ${firstLayout.paddingPx}px;
-         flex: 1;
-         overflow: hidden;
-         display: flex;
-         flex-direction: column;
-         min-height: 0;
-         margin-top: ${firstLayout.sectionSpacing + 2}px;
-       }
-
-       .product-title {
-         font-weight: bold;
-         font-size: ${firstLayout.baseFontSize}px;
-         margin-bottom: 2px;
-         line-height: ${firstLayout.lineHeight};
-         flex-shrink: 0;
-       }
-
-       .product-list {
-         font-size: ${firstLayout.smallFontSize}px;
-         line-height: ${firstLayout.lineHeight};
-         word-wrap: break-word;
-         overflow-wrap: break-word;
-         flex: 1;
-         overflow: hidden;
-         display: -webkit-box;
-         -webkit-box-orient: vertical;
-         -webkit-line-clamp: 4;
-       }
-     </style>
-   `
-
-    // Generate HTML for all bills using IMPROVED layout system
-    const generateLabelHTML = (bill: BillResponseType) => {
-      // Generate EXACT same layout data as print preview for each bill
-      const layout = generateUnifiedLayoutData(bill, selectedTemplate, previewFromAddress)
-
-      return `
-     <div class="page-container">
-       <div class="container">
-         <div class="header">
-           Ship Via: ${layout.formattedOrder.shipVia}
-         </div>
-         
-         <div class="order-id">
-           ${layout.fromAddress.name} Order ID: ${bill.bill_details.bill_no}
-         </div>
-         
-         <div class="barcode-wrapper">
-           <svg id="barcode-${bill.bill_id}" class="barcode-img"></svg>
-         </div>
-         
-         <div class="address-box">
-           <div class="to-name">TO ${layout.formattedOrder.toAddress.name}</div>
-           <div class="address-line">${(bill.customer_details.flat_no ? bill.customer_details.flat_no + ", " : "") + bill.customer_details.street}</div>
-           <div class="address-line">${bill.customer_details.district}</div>
-           <div class="address-line">${bill.customer_details.state} ${bill.customer_details.pincode}</div>
-           <div class="address-line">${bill.customer_details.phone}</div>
-         </div>
-         
-         <div class="details-grid">
-           <div class="detail-box">
-             <div class="detail-title">From:</div>
-             <div class="detail-line">${layout.fromAddress.name}</div>
-             <div class="detail-line">${layout.fromAddress.street}</div>
-             <div class="detail-line">${layout.fromAddress.city}</div>
-             <div class="detail-line">${layout.fromAddress.state}-${layout.fromAddress.zipCode}</div>
-             <div class="detail-line">Mobile: ${layout.fromAddress.phone}</div>
-           </div>
-           
-           <div class="detail-box">
-             <div class="detail-title">Prepaid Order:</div>
-             <div class="detail-line">Date: ${layout.formattedOrder.orderDate}</div>
-             <div class="detail-line">Weight: ${bill.shipping_details?.weight || ""}</div>
-             <div class="detail-line">No. of Items: ${layout.formattedOrder.totalItems}</div>
-             <div class="detail-line">Source: Instagram</div>
-             <div class="detail-line">Packed By: </div>
-           </div>
-         </div>
-         
-         <div class="product-section">
-           <div class="product-title">Products:</div>
-           <div class="product-list">
-             ${layout.productText}
-           </div>
-         </div>
-       </div>
-     </div>
-   `
+    const getFontSizes = (template: TemplateType | null) => {
+      if (template?.id === '2x4' || (template?.width && template.width <= 192)) {
+        return {
+          baseFontSize: 5,
+          titleFontSize: 6,
+          smallFontSize: 4,
+          letterSpacing: '-0.4px',
+          lineHeight: 0.8,
+          padding: '1px',
+          borderWidth: '0.5px'
+        }
+      }
+      else if (template?.id === '4x4' || (template?.width && template.width <= 384)) {
+        return {
+          baseFontSize: 11,
+          titleFontSize: 12,
+          smallFontSize: 10,
+          letterSpacing: 'normal',
+          lineHeight: 1.2,
+          padding: '4px',
+          borderWidth: '1px'
+        }
+      }
+      else {
+        return {
+          baseFontSize: 14,
+          titleFontSize: 16,
+          smallFontSize: 12,
+          letterSpacing: 'normal',
+          lineHeight: 1.3,
+          padding: '6px',
+          borderWidth: '1px'
+        }
+      }
     }
 
-    const billsHTML = bills.map((bill) => generateLabelHTML(bill)).join("")
+    const fontSizes = getFontSizes(selectedTemplate)
+    const barcodeWidth = selectedTemplate?.id === '2x4' ? 0.8 : 1.2
+    const barcodeHeight = selectedTemplate?.id === '2x4' ? 25 : 40
 
-    // Create barcode initialization code for each bill using UNIFIED settings
-    const barcodeInitScript = bills
-      .map((bill) => {
-        const layout = generateUnifiedLayoutData(bill, selectedTemplate, previewFromAddress)
-        return `
-     JsBarcode("#barcode-${bill.bill_id}", "${bill.bill_details.bill_no}", {
-       format: "CODE128",
-       width: ${layout.barcodeWidth},
-       height: ${layout.barcodeHeight},
-       displayValue: false,
-       margin: 0
-     });
-   `
-      })
-      .join("\n")
+    const styles = `
+      <style>
+        @media print {
+          @page {
+            size: ${templateWidth}in ${templateHeight}in;
+            margin: 0;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            width: ${selectedTemplate?.width || 384}px !important;
+            height: ${selectedTemplate?.height || 384}px !important;
+            max-height: ${selectedTemplate?.height || 384}px !important;
+            overflow: hidden;
+          }
+          .page-container {
+            width: 100% !important;
+            height: 100% !important;
+            page-break-after: always;
+            overflow: hidden !important;
+            box-sizing: border-box;
+          }
+          .container {
+            width: 100% !important;
+            height: 100% !important;
+            page-break-after: avoid;
+            overflow: hidden !important;
+            box-sizing: border-box;
+            padding: ${fontSizes.padding} !important;
+            padding-top: 8px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+            padding-bottom: 8px !important;
+            border: 0 !important;
+          }
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          font-size: ${fontSizes.baseFontSize}px;
+          line-height: ${fontSizes.lineHeight};
+          font-weight: 500;
+          letter-spacing: ${fontSizes.letterSpacing};
+        }
+
+        .page-container {
+          width: ${selectedTemplate?.width || 384}px;
+          height: ${selectedTemplate?.height || 384}px;
+          page-break-after: always;
+          margin: 0 auto;
+          box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .container {
+          width: ${selectedTemplate?.width || 384}px;
+          height: ${selectedTemplate?.height || 384}px;
+          margin: 0 auto;
+          padding: ${fontSizes.padding};
+          padding-top: 8px;
+          padding-left: 12px;
+          padding-right: 12px;
+          padding-bottom: 8px;
+          box-sizing: border-box;
+          position: relative;
+          border: 0;
+          overflow: hidden;
+        }
+
+        .header {
+          font-size: ${fontSizes.titleFontSize}px;
+          font-weight: bold;
+          margin-top: 5px;
+          margin-bottom: 1px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .order-id {
+          font-size: ${fontSizes.titleFontSize}px;
+          font-weight: bold;
+          margin-bottom: 2px;
+          text-align: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .barcode-wrapper {
+          text-align: center;
+          margin: 4px auto;
+          height: ${barcodeHeight}px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 90%;
+        }
+
+        .barcode-img {
+          max-height: 100%;
+          max-width: 100%;
+        }
+
+        .address-box {
+          border: ${fontSizes.borderWidth} solid #000;
+          padding: ${fontSizes.padding};
+          margin-bottom: 2px;
+          min-height: 80px;
+          overflow: hidden;
+        }
+
+        .to-name {
+          font-weight: bold;
+          font-size: ${fontSizes.titleFontSize}px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+       .address-line {
+          white-space: normal;
+          word-wrap: break-word;
+          line-height: ${fontSizes.lineHeight};
+          font-size: ${fontSizes.baseFontSize}px;
+          overflow: hidden;
+        }
+
+        .details-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2px;
+          margin-bottom: 2px;
+        }
+
+        .detail-box {
+          border: ${fontSizes.borderWidth} solid #000;
+          padding: ${fontSizes.padding};
+          min-height: 65px;
+          overflow: hidden;
+        }
+
+        .detail-title {
+          font-weight: bold;
+          font-size: ${fontSizes.titleFontSize}px;
+        }
+
+        .product-section {
+          border: ${fontSizes.borderWidth} solid #000;
+          padding: ${fontSizes.padding};
+          margin-top: 2px;
+          min-height: 50px;
+          overflow: hidden;
+        }
+
+        .product-title {
+          font-weight: bold;
+          font-size: ${fontSizes.titleFontSize}px;
+          margin-bottom: 1px;
+        }
+
+        .product-list {
+          white-space: normal;
+          word-wrap: break-word;
+          overflow: hidden;
+        }
+      </style>
+    `
+
+    const formatProductsList = (products: Array<{ productName?: string; name?: string; quantity: number }>): string => {
+      if (!products || products.length === 0) {
+        return "No products"
+      }
+
+      const totalProducts = products.length
+      let fontSize = fontSizes.smallFontSize
+      let lineHeight = fontSizes.lineHeight
+
+      if (totalProducts > 6) {
+        fontSize = Math.max(fontSize - 1, 3)
+        lineHeight = Math.max(lineHeight - 0.1, 0.7)
+      }
+
+      if (totalProducts > 10) {
+        fontSize = Math.max(fontSize - 1, 2)
+        lineHeight = Math.max(lineHeight - 0.1, 0.6)
+      }
+
+      if (selectedTemplate?.id === '2x4') {
+        return products.map(product => {
+          const productName = product.productName || product.name
+          const truncatedName = productName && productName.length > 10
+            ? productName.substring(0, 9) + '…'
+            : productName
+          return `${truncatedName} × ${product.quantity}`
+        }).join(', ')
+      }
+
+      return products.map(product => {
+        const productName = product.productName || product.name
+        return `${productName} × ${product.quantity}`
+      }).join(', ')
+    }
+
+    const generateLabelHTML = (bill: BillResponseType) => {
+      const totalItems = bill.product_details.reduce((total, product) => total + product.quantity, 0)
+      const productCount = bill.product_details.length
+
+      const fromAddress = {
+        name: bill.organisation_details.Name || previewFromAddress.name,
+        street: bill.organisation_details.street || previewFromAddress.street,
+        city: bill.organisation_details.district || previewFromAddress.city,
+        state: bill.organisation_details.state || previewFromAddress.state,
+        zipCode: bill.organisation_details.pincode || previewFromAddress.zipCode,
+        phone: bill.organisation_details.phone || previewFromAddress.phone
+      }
+
+      return `
+        <div class="page-container">
+          <div class="container">
+            <div class="header">
+              Ship Via: ${bill.shipping_details?.method_name || 'Standard Shipping'}
+            </div>
+
+            <div class="order-id">
+              ${fromAddress.name} Order ID: ${bill.bill_details.bill_no}
+            </div>
+
+            <div class="barcode-wrapper">
+              <svg id="barcode-${bill.bill_id}" class="barcode-img"></svg>
+            </div>
+
+            <div class="address-box">
+              <div class="to-name">TO ${bill.customer_details.name}</div>
+              <div class="address-line">${(bill.customer_details.flat_no ? bill.customer_details.flat_no + ', ' : '') + bill.customer_details.street}</div>
+              <div class="address-line">${bill.customer_details.district}</div>
+              <div class="address-line">${bill.customer_details.state} ${bill.customer_details.pincode}</div>
+              <div class="address-line">${bill.customer_details.phone}</div>
+            </div>
+
+            <div class="details-grid">
+              <div class="detail-box">
+                <div class="detail-title">From:</div>
+                <div class="address-line">${fromAddress.name}</div>
+                <div class="address-line">${fromAddress.street}</div>
+                <div class="address-line">${fromAddress.city}</div>
+                <div class="address-line">${fromAddress.state}-${fromAddress.zipCode}</div>
+                <div class="address-line">Mobile: ${fromAddress.phone}</div>
+              </div>
+
+              <div class="detail-box">
+                <div class="detail-title">
+                  Prepaid Order:
+                </div>
+                <div class="address-line">Date: ${bill.bill_details.date}, ${bill.bill_details.time}</div>
+                <div class="address-line">Weight: </div>
+                <div class="address-line">No. of Items: ${totalItems}</div>
+                <div class="address-line">Source: Instagram</div>
+                <div class="address-line">Packed By: </div>
+              </div>
+            </div>
+
+            <div class="product-section" style="min-height: ${50 - (productCount > 6 ? 10 : 0)}px;">
+              <div class="product-title">Products:</div>
+              <div class="product-list" style="line-height: ${productCount > 6 ? Math.max(fontSizes.lineHeight - 0.2, 0.7) : fontSizes.lineHeight}; font-size: ${productCount > 6 ? Math.max(fontSizes.smallFontSize - 1, 3) : fontSizes.smallFontSize}px;">
+                ${formatProductsList(bill.product_details)}
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    }
+
+    const billsHTML = bills.map(bill => generateLabelHTML(bill)).join('')
+
+    const barcodeInitScript = bills.map(bill => {
+      return `
+        JsBarcode("#barcode-${bill.bill_id}", "${bill.bill_details.bill_no}", {
+          format: "CODE128",
+          width: ${barcodeWidth},
+          height: ${barcodeHeight},
+          displayValue: false,
+          margin: 0
+        });
+      `
+    }).join('\n')
 
     return `
-     <!DOCTYPE html>
-     <html lang="en">
-       <head>
-         <meta charset="UTF-8">
-         <title>Print Bills</title>
-         ${styles}
-         <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-       </head>
-       <body>
-         ${billsHTML}
-         <script>
-           document.addEventListener('DOMContentLoaded', function() {
-             try {
-               ${barcodeInitScript}
-               
-               setTimeout(function() {
-                 window.print();
-                 setTimeout(() => window.close(), 500);
-               }, 1000);
-             } catch(error) {
-               console.error('Error generating barcodes:', error);
-               alert('There was an error generating the barcodes. Please try again.');
-             }
-           });
-         </script>
-       </body>
-     </html>
-   `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Print Bills</title>
+          ${styles}
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+        </head>
+        <body>
+          ${billsHTML}
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              try {
+                ${barcodeInitScript}
+
+                setTimeout(function() {
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                }, 1000);
+              } catch(error) {
+                console.error('Error generating barcodes:', error);
+                alert('There was an error generating the barcodes. Please try again.');
+              }
+            });
+          </script>
+        </body>
+      </html>
+    `
   }
 
   const renderTemplatePreview = (template: TemplateType) => {
@@ -1721,221 +1831,105 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
 
   const renderStepContent = () => {
     if (step === 1) {
-      if (isEditingAddress) {
-        return (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Enter Shipping From Address</h2>
-            <form onSubmit={handleSubmitFromAddress}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business/Name*</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={fromAddress.name}
-                    onChange={handleFromAddressChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address*</label>
-                  <input
-                    type="text"
-                    name="street"
-                    value={fromAddress.street}
-                    onChange={handleFromAddressChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City*</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={fromAddress.city}
-                    onChange={handleFromAddressChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={fromAddress.state}
-                    onChange={handleFromAddressChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ZIP/Postal Code*</label>
-                  <input
-                    type="text"
-                    name="zipCode"
-                    value={fromAddress.zipCode}
-                    onChange={handleFromAddressChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number*</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={fromAddress.phone}
-                    onChange={handleFromAddressChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingAddress(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Saving..." : "Save Address"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )
-      } else if (showTemplateEdit) {
-        return (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Select Label Template</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {templates.map((template) => (
-                <div
-                  key={template.id}
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-colors hover:bg-blue-50 ${selectedTemplate?.id === template.id ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
-                  onClick={() => handleTemplateSelect(template)}
-                >
-                  <div className="flex items-center mb-3">
-                    <h3 className="font-medium">{template.name}</h3>
-                  </div>
-                  {renderTemplatePreview(template)}
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setShowTemplateEdit(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 mr-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowTemplateEdit(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Save Template
-              </button>
-            </div>
-          </div>
-        )
-      }
-
       return (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex flex-col md:flex-row gap-6 mb-6">
-            <div className="flex-1">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold">Shipping From Address</h2>
-                <button
-                  onClick={() => setIsEditingAddress(true)}
-                  className="flex items-center px-3 py-1 text-sm bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
-                >
-                  <Edit2 className="w-3 h-3 mr-1" />
-                  Edit
-                </button>
-              </div>
-              <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-                {isAddressSaved ? (
-                  <>
-                    <p className="font-medium">{fromAddress.name}</p>
-                    <p>{fromAddress.street}</p>
-                    <p>
-                      {fromAddress.city}, {fromAddress.state} {fromAddress.zipCode}
-                    </p>
-                    <p>Phone: {fromAddress.phone}</p>
-                  </>
-                ) : (
-                  <div className="text-center py-2">
-                    <p className="text-gray-500">No address saved</p>
-                    <button onClick={() => setIsEditingAddress(true)} className="mt-2 text-blue-600 underline">
-                      Add Address
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold">Label Template</h2>
-                <button
-                  onClick={() => setShowTemplateEdit(true)}
-                  className="flex items-center px-3 py-1 text-sm bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
-                >
-                  <Edit2 className="w-3 h-3 mr-1" />
-                  Edit Template
-                </button>
-              </div>
-              <div className="border border-gray-200 rounded-md p-4 bg-gray-50 h-40">
-                {selectedTemplate ? (
-                  <>
-                    <div className="mb-2 text-sm text-gray-600">
-                      Current template: <span className="font-medium">{selectedTemplate.name}</span>
-                    </div>
-                    <div className="h-28 overflow-hidden">{renderTemplatePreview(selectedTemplate)}</div>
-                  </>
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-gray-500">No template selected</p>
-                    <button onClick={() => setShowTemplateEdit(true)} className="mt-2 text-blue-600 underline">
-                      Select Template
-                    </button>
-                  </div>
-                )}
-              </div>
+        <div className="space-y-2.5 sm:space-y-4">
+          <div className="rounded-[16px] border border-slate-200 bg-white p-1 shadow-sm sm:rounded-[20px]">
+            <div className="grid grid-cols-2 gap-1 rounded-[14px] bg-slate-100 p-1 sm:rounded-[16px]">
+              <button
+                type="button"
+                onClick={() => setActivePrintSection("labels")}
+                className={`rounded-[12px] px-3 py-2.5 text-sm font-semibold transition sm:px-4 sm:py-3 ${
+                  activePrintSection === "labels"
+                    ? "bg-[#2F2F33] text-white shadow-sm"
+                    : "bg-transparent text-slate-600 hover:bg-white/70"
+                }`}
+              >
+                Bulk Print
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePrintSection("single")}
+                className={`rounded-[12px] px-3 py-2.5 text-sm font-semibold transition sm:px-4 sm:py-3 ${
+                  activePrintSection === "single"
+                    ? "bg-[#2F2F33] text-white shadow-sm"
+                    : "bg-transparent text-slate-600 hover:bg-white/70"
+                }`}
+              >
+                Single Print
+              </button>
             </div>
           </div>
 
-          <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-lg font-semibold mb-4">Print Options</h2>
+          {activePrintSection === "labels" && (
+          <div className="overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-sm sm:rounded-[22px]">
+            <div className="border-b border-slate-200 bg-white px-3 py-4 sm:px-5 sm:py-5">
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-[#D63031] sm:mb-3 sm:h-12 sm:w-12 sm:rounded-xl">
+                  <Printer className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+                <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Print Labels</h2>
+                <p className="mt-1 text-[11px] text-slate-500 sm:text-sm">Generate shipping labels for ready orders</p>
+              </div>
+            </div>
 
-            <div className="mb-6">
-              <h3 className="font-medium text-gray-700 mb-2">Print Single Label</h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={billId}
-                  onChange={(e) => setBillId(e.target.value)}
-                  placeholder="Enter Bill ID"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            <div className="flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3.5">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 sm:gap-2.5 sm:rounded-xl sm:px-3 sm:py-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#D63031] shadow-sm sm:h-10 sm:w-10 sm:rounded-xl">
+                  <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium text-gray-500 sm:text-xs">Orders Ready</p>
+                  <p className="text-xl font-bold leading-none text-gray-900 sm:text-2xl">{bills}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-2.5">
+                <button
+                  onClick={() => {
+                    setBillId("")
+                    setShowPrintHistory(false)
+                  }}
+                  className="flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
+                >
+                  <RotateCcw className="mr-2 h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  Reset
+                </button>
+                <button
+                  onClick={openBulkPreview}
+                  disabled={bills === 0 || !isAddressSaved || !selectedTemplate}
+                  className="flex items-center justify-center rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
+                >
+                  <Printer className="mr-2 h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  Print All ({bills})
+                </button>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {activePrintSection === "single" && (
+          <div className="rounded-[16px] border border-slate-200 bg-white p-2.5 shadow-sm sm:rounded-[20px] sm:p-4">
+            <div className="mb-2.5 flex items-center gap-2 text-gray-900 sm:mb-3">
+              <Printer className="h-4 w-4 text-[#D63031]" />
+              <h3 className="text-lg font-bold tracking-tight sm:text-xl">Single Print</h3>
+            </div>
+
+            <div className="space-y-2 sm:space-y-2.5">
+              <input
+                type="text"
+                value={billId}
+                onChange={(e) => setBillId(e.target.value)}
+                placeholder="Enter Order ID"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-[#F57F26] focus:bg-white focus:ring-2 focus:ring-[#F57F26]/10 sm:rounded-xl sm:px-3.5 sm:py-3 sm:text-sm"
+              />
+
+              <div className="grid gap-2.5 md:grid-cols-[minmax(0,1fr)_auto_auto]">
                 <button
                   onClick={() => handlePrintBill(billId)}
                   disabled={!isAddressSaved || !selectedTemplate || !billId}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                   className="rounded-lg bg-orange-500 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-3"
                 >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print & Download
+                  Print Label
                 </button>
                 <button
                   onClick={async () => {
@@ -1945,111 +1939,300 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
                     }
                   }}
                   disabled={!billId}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                   className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-3"
                 >
                   Download PDF
                 </button>
+                <button
+                  onClick={handlePrint}
+                  disabled={!isAddressSaved || !selectedTemplate}
+                   className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-3"
+                >
+                  Preview Sample
+                  <ArrowRight className="ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {printHistory.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowPrintHistory(!showPrintHistory)}
+                    className="flex items-center text-sm font-medium text-[#D63031]"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  {showPrintHistory ? "Hide" : "Show"} recent bills
+                </button>
+
+                {showPrintHistory && (
+                  <div className="mt-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:rounded-xl sm:p-2.5">
+                    <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500 sm:text-xs sm:tracking-[0.18em]">Recent Bills</div>
+                    <div className="flex flex-wrap gap-2">
+                      {printHistory.map((id) => (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            setBillId(id)
+                            setShowPrintHistory(false)
+                          }}
+                          className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:border-slate-300 hover:bg-slate-50 sm:px-3 sm:py-1 sm:text-xs"
+                        >
+                          {id}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          <div className="rounded-[16px] border border-slate-200 bg-white p-2.5 shadow-sm sm:rounded-[20px] sm:p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-2 text-gray-900">
+                <MapPin className="h-4 w-4 text-[#D63031]" />
+                <div>
+                  <h3 className="text-lg font-bold tracking-tight sm:text-xl">Settings</h3>
+                  <p className="text-[11px] text-gray-500 sm:text-xs">Address and label configuration</p>
+                </div>
               </div>
 
-              {printHistory.length > 0 && (
-                <div className="mt-2">
-                  <button
-                    onClick={() => setShowPrintHistory(!showPrintHistory)}
-                    className="text-sm text-blue-600 flex items-center"
-                  >
-                    <RotateCcw className="w-3 h-3 mr-1" />
-                    {showPrintHistory ? "Hide" : "Show"} recent bills
-                  </button>
+              <button
+                onClick={() => {
+                  setIsEditingAddress(true)
+                  setShowTemplateEdit(true)
+                }}
+                className="text-sm font-semibold text-[#D63031] transition hover:text-[#b92c2d]"
+              >
+                Edit
+              </button>
+            </div>
 
-                  {showPrintHistory && (
-                    <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
-                      <div className="text-xs text-gray-500 mb-1">Recently printed bills:</div>
-                      <div className="flex flex-wrap gap-2">
-                        {printHistory.map((id) => (
+            <div className="mt-2.5 grid gap-2.5 sm:mt-3 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
+              <div className="space-y-2">
+                {isAddressSaved ? (
+                  <>
+                    <p className="text-sm font-semibold text-gray-900 sm:text-base">{fromAddress.name}</p>
+                    <p className="text-xs text-gray-600 sm:text-sm">{fromAddress.street}</p>
+                    <p className="text-xs text-gray-600 sm:text-sm">
+                      {fromAddress.city}, {fromAddress.state}
+                    </p>
+                    <p className="text-xs text-gray-600 sm:text-sm">{fromAddress.zipCode}</p>
+                    <p className="text-xs text-gray-600 sm:text-sm">Phone: {fromAddress.phone}</p>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2.5 text-xs text-gray-600 sm:rounded-xl sm:p-3 sm:text-sm">
+                    No address saved yet. Use Edit to add the shipping-from address and choose your label size.
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:rounded-xl sm:p-3">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500 sm:text-xs sm:tracking-[0.18em]">Selected Format</p>
+                <p className="mt-1.5 text-sm font-semibold text-gray-900 sm:text-base">
+                  {selectedTemplate?.name || "No template selected"}
+                </p>
+                {selectedTemplate?.description && (
+                  <p className="mt-1 text-[11px] text-gray-500 sm:text-xs">{selectedTemplate.description}</p>
+                )}
+                <div className="mt-2.5 overflow-hidden rounded-lg border border-slate-200 bg-white sm:mt-3 sm:rounded-xl">
+                  <div className="h-20 sm:h-24">{selectedTemplate ? renderTemplatePreview(selectedTemplate) : null}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2 border-t border-slate-200 pt-2.5 sm:mt-4 sm:gap-2.5 sm:pt-3 sm:flex-row">
+              <button
+                onClick={async () => {
+                  try {
+                    setIsLoading(true)
+                    const response = await publicApi.get("/api/printingroute/bulkPrinting", {
+                      headers: {
+                        "tenent-id": tenentId || "",
+                      },
+                    })
+
+                    if (response.data.bills && response.data.bills.length > 0) {
+                      await downloadBulkBillsDataAsPDF(response.data.bills)
+                      setBills(0)
+                    } else {
+                      alert("No bills available for download")
+                    }
+                  } catch (error: any) {
+                    alert(`Error: ${error.message || "Failed to download bills data"}`)
+                  } finally {
+                    setIsLoading(false)
+                  }
+                }}
+                disabled={bills === 0 || !isAddressSaved || !selectedTemplate}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
+              >
+                Download All PDFs
+              </button>
+            </div>
+
+            {bills > 0 && (!isAddressSaved || !selectedTemplate) && (
+              <p className="mt-3 text-sm text-amber-600">
+                {!isAddressSaved
+                  ? "Please add your address before printing."
+                  : "Please select a template before printing."}
+              </p>
+            )}
+          </div>
+
+          {(isEditingAddress || showTemplateEdit) && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-2 sm:p-4 backdrop-blur-[2px]">
+              <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-[18px] bg-white shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-[22px]">
+                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+                  <div>
+                    <h2 className="text-base font-bold text-gray-900 sm:text-xl">Edit Address & Settings</h2>
+                    <p className="mt-1 text-[11px] text-gray-500 sm:text-xs">Update sender details and preferred label size</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsEditingAddress(false)
+                      setShowTemplateEdit(false)
+                    }}
+                    className="rounded-full p-1.5 text-gray-500 transition hover:bg-white hover:text-gray-800 sm:p-2"
+                  >
+                    <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmitFromAddress} className="max-h-[calc(90vh-88px)] overflow-y-auto">
+                  <div className="space-y-3 px-3 py-3 sm:space-y-4 sm:px-4 sm:py-4">
+                    <div className="grid grid-cols-1 gap-2.5 sm:gap-3 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-sm font-medium text-gray-700">Business/Name*</label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={fromAddress.name}
+                          onChange={handleFromAddressChange}
+                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F57F26]/10 focus:border-[#F57F26] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-sm font-medium text-gray-700">Street Address*</label>
+                        <input
+                          type="text"
+                          name="street"
+                          value={fromAddress.street}
+                          onChange={handleFromAddressChange}
+                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F57F26]/10 focus:border-[#F57F26] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">City*</label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={fromAddress.city}
+                          onChange={handleFromAddressChange}
+                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F57F26]/10 focus:border-[#F57F26] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">State*</label>
+                        <input
+                          type="text"
+                          name="state"
+                          value={fromAddress.state}
+                          onChange={handleFromAddressChange}
+                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F57F26]/10 focus:border-[#F57F26] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">ZIP/Postal Code*</label>
+                        <input
+                          type="text"
+                          name="zipCode"
+                          value={fromAddress.zipCode}
+                          onChange={handleFromAddressChange}
+                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F57F26]/10 focus:border-[#F57F26] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">Phone Number*</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={fromAddress.phone}
+                          onChange={handleFromAddressChange}
+                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F57F26]/10 focus:border-[#F57F26] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 sm:text-base">Preferred Label Size</h3>
+                      <div className="mt-2 grid gap-2 sm:mt-2.5 sm:gap-2.5 sm:grid-cols-2">
+                        {templates.map((template) => (
                           <button
-                            key={id}
-                            onClick={() => {
-                              setBillId(id)
-                              setShowPrintHistory(false)
-                            }}
-                            className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                            key={template.id}
+                            type="button"
+                            onClick={() => handleTemplateSelect(template)}
+                            className={`rounded-lg border p-2.5 text-left transition sm:rounded-xl sm:p-3 ${
+                              selectedTemplate?.id === template.id
+                                ? "border-[#F57F26] bg-orange-50/40 shadow-sm"
+                                : "border-gray-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                            }`}
                           >
-                            {id}
+                              <div className="flex items-start gap-2.5">
+                              <div
+                                className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border sm:h-4 sm:w-4 ${
+                                  selectedTemplate?.id === template.id
+                                    ? "border-[#F57F26] bg-[#F57F26]"
+                                    : "border-gray-300 bg-white"
+                                }`}
+                              >
+                                {selectedTemplate?.id === template.id && <div className="h-2 w-2 rounded-full bg-white sm:h-2.5 sm:w-2.5" />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-900">{template.name}</p>
+                                <p className="text-[11px] text-gray-500 sm:text-xs">
+                                  {template.description || `${template.width / 96}x${template.height / 96} inch`}
+                                </p>
+                              </div>
+                            </div>
                           </button>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
 
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">Bulk Printing</h3>
-              <div className="flex items-center">
-                <div className="mr-4">
-                  <span className="text-sm text-gray-600">You have </span>
-                  <span className="font-semibold">{bills}</span>
-                  <span className="text-sm text-gray-600"> pending bills</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleBulkPrint}
-                    disabled={bills === 0 || !isAddressSaved || !selectedTemplate}
-                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print & Download All ({bills})
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        setIsLoading(true)
-                        const response = await publicApi.get("/api/printingroute/bulkPrinting", {
-                          headers: {
-                            "tenent-id": tenentId || "",
-                          },
-                        })
-
-                        if (response.data.bills && response.data.bills.length > 0) {
-                          await downloadBulkBillsDataAsPDF(response.data.bills)
-                          setBills(0)
-                        } else {
-                          alert("No bills available for download")
-                        }
-                      } catch (error: any) {
-                        alert(`Error: ${error.message || "Failed to download bills data"}`)
-                      } finally {
-                        setIsLoading(false)
-                      }
-                    }}
-                    disabled={bills === 0 || !isAddressSaved || !selectedTemplate}
-                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Download All PDFs
-                  </button>
-                </div>
+                  <div className="border-t border-slate-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingAddress(false)
+                          setShowTemplateEdit(false)
+                        }}
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Saving..." : "Save Settings"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
-              {bills > 0 && (!isAddressSaved || !selectedTemplate) && (
-                <p className="text-sm text-amber-600 mt-1">
-                  {!isAddressSaved
-                    ? "Please add your address before printing."
-                    : "Please select a template before printing."}
-                </p>
-              )}
             </div>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={handlePrint}
-              disabled={!isAddressSaved || !selectedTemplate}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Preview & Print Sample
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </button>
-          </div>
+          )}
         </div>
       )
     }
@@ -2065,11 +2248,10 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Shipping Label Management</h1>
+    <div className="container mx-auto max-w-4xl px-2 sm:px-3 py-4">
+      <div className="mb-4">
         {step === 2 && (
-          <button className="mt-2 text-blue-600 flex items-center" onClick={() => setStep(1)}>
+          <button className="mt-2 flex items-center text-[#D63031]" onClick={() => setStep(1)}>
             <ArrowRight className="w-4 h-4 mr-1 transform rotate-180" />
             Back to settings
           </button>
@@ -2078,10 +2260,86 @@ const PrintManagement = ({ orderData }: PrintManagementProps) => {
 
       {isLoading || loadingTemplates ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F57F26]"></div>
         </div>
       ) : (
         renderStepContent()
+      )}
+
+      {/* BULK PREVIEW MODAL */}
+      {showBulkPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2">
+          <div className="flex max-h-[85vh] w-[95%] max-w-lg flex-col rounded-lg bg-white p-3 shadow-lg sm:max-h-[80vh] sm:w-full sm:p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900">Confirm Bulk Print</h3>
+              <button
+                onClick={() => setShowBulkPreview(false)}
+                className="text-gray-600 hover:text-gray-900 text-2xl leading-none px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-3 space-y-1 text-sm text-gray-700">
+              <p><b>Total Orders:</b> {bulkPreviewData.totals.totalBills}</p>
+              <p><b>Total Product Quantity:</b> {bulkPreviewData.totals.totalItems}</p>
+              <p className="text-gray-500">Review product-wise breakdown below:</p>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
+              <div className="max-h-80 overflow-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="border-b px-3 py-2.5 text-left font-semibold">Product</th>
+                      <th className="border-b px-3 py-2.5 text-right font-semibold">Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkPreviewData.aggregatedProducts.map((item, i) => (
+                      <tr key={i} className="odd:bg-white even:bg-gray-50 hover:bg-slate-50 transition-colors">
+                         <td className="border-b px-3 py-2">{item.productName}</td>
+                         <td className="border-b px-3 py-2 text-right font-medium">{item.quantity}</td>
+                      </tr>
+                    ))}
+                    {!bulkPreviewData.aggregatedProducts.length && (
+                      <tr>
+                        <td colSpan={2} className="py-8 text-center text-gray-500">
+                          No items found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col justify-end gap-2.5 sm:flex-row">
+              <button
+                onClick={() => setShowBulkPreview(false)}
+                className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 sm:w-auto"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={downloadProductSummaryPDF}
+                className="flex w-full items-center justify-center rounded-md bg-gray-700 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-800 sm:w-auto"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Download Summary
+              </button>
+
+              <button
+                onClick={proceedBulkPrint}
+                className="flex w-full items-center justify-center rounded-md bg-orange-600 px-4 py-2 text-sm text-white transition-colors hover:bg-orange-700 sm:w-auto"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Proceed to Print
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

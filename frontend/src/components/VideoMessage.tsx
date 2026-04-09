@@ -54,7 +54,7 @@ interface TimeStampProps {
 
 const TimeStamp: React.FC<TimeStampProps> = ({ time, isOutgoing }) => (
   <div className={`text-xs mt-2 ${
-    !isOutgoing ? 'text-gray-500' : 'text-white opacity-70'
+    !isOutgoing ? 'text-gray-500' : 'text-gray-600 opacity-70'
   }`}>
     {time}
   </div>
@@ -83,7 +83,7 @@ const VideoMessage: React.FC<VideoMessageProps> = ({
         }
   
         try {
-          const baseUrl = process.env.REACT_APP_API_URL || 'https://app.instaxbot.com';
+          const baseUrl = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
           const proxyUrl = `${baseUrl}/api/imageproxyroutes/proxy-video`;
   
           if (sourceVideoUrl) {
@@ -145,7 +145,7 @@ const VideoMessage: React.FC<VideoMessageProps> = ({
             <div className={`max-w-[350px] min-w-[200px] rounded-[20px] px-6 py-3 ${
               message.senderId === selectedContact?.senderId 
                 ? 'bg-white shadow-md border border-gray-200' 
-                : 'bg-blue-500 text-white'
+                : 'bg-[#FAE8D6]'
             }`}>
               {isLoading && <LoadingSpinner />}
               {videoError ? (
@@ -174,7 +174,7 @@ const VideoMessage: React.FC<VideoMessageProps> = ({
   
         {responseVideoData && (
           <div className="flex justify-end mb-3">
-            <div className="max-w-[350px] min-w-[200px] bg-blue-500 text-white rounded-[20px] px-6 py-3 shadow-md">
+            <div className="max-w-[350px] min-w-[200px] bg-[#FAE8D6] text-gray-900 rounded-[20px] px-6 py-3 shadow-md">
               <div className="cursor-pointer" onClick={() => handleVideoClick(responseVideoData)}>
                 <video 
                   controls
@@ -185,7 +185,7 @@ const VideoMessage: React.FC<VideoMessageProps> = ({
                   Your browser does not support the video tag.
                 </video>
               </div>
-              <div className="text-xs opacity-75 mt-2">
+              <div className="text-xs text-gray-600 opacity-75 mt-2">
                 {formatMessageTime(message.Timestamp)}
               </div>
             </div>

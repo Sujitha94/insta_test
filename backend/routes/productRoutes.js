@@ -69,6 +69,7 @@ router.get('/products', async (req, res) => {
           productPhotoUrl: productDetail.productPhotoUrl || `${process.env.APP_URL}/default-product-image.jpg`,
           units: productDetail.units || [],
           websiteLink: productDetail.websiteLink,
+           productDescription: productDetail.productDescription || '',
           quantityInStock: productDetail.quantityInStock || 0
         };
       })

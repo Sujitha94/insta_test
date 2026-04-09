@@ -1,42 +1,46 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import ProductTypeTemplate from "./ProductTypeTemplate";
+import ProductDetailsTemplate from "./ProductDetailsTemplate";
+
+const tabs = [
+  { label: "Product Type Template", component: ProductTypeTemplate },
+  { label: "Product Details Template", component: ProductDetailsTemplate },
+];
 
 export default function EcommerceProductTemplate() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const ActiveComponent = tabs[activeIndex].component;
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center md:-mt-16">
-     {/* Back Button positioned at the top left - responsive for mobile */}
-     <Link
-        to="/product-template"
-        className="absolute top-24 left-4 md:top-20 md:left-[17rem] px-4 md:px-6 py-2 bg-white text-black border-2 border-pink-200 rounded-lg font-semibold hover:bg-pink-100 transition-all duration-300 text-sm md:text-base"
-      >
-        ← Back
-      </Link>
-      {/* Main Card */}
-      <div className="w-full max-w-xl px-4 md:px-0">
-        <div className="bg-white shadow-lg px-4 md:px-6 py-4 md:py-5 rounded-xl">
-          <h1 className="text-xl md:text-2xl font-bold text-black text-center">
-            Ecommerce Product Templates Page
-          </h1>
+    <div className="min-h-screen bg-gray-100 w-full">
+
+      {/* Top Header */}
+      <div className="bg-white px-6 py-4 border-b border-gray-200">
+        <h1 className="text-xl font-bold text-[#2C3E50]">Ecommerce Product Templates</h1>
+      </div>
+
+      {/* Tab Bar - vertical on mobile, horizontal on md+ */}
+      <div className="bg-white border-b border-gray-200 px-6">
+        <div className="flex flex-col md:flex-row md:gap-0 md:overflow-x-auto">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.label}
+              onClick={() => setActiveIndex(index)}
+              className={`w-full md:w-auto text-left md:text-center px-5 py-3 text-sm font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap ${
+                activeIndex === index
+                  ? "border-[#E87028] text-[#E87028]"
+                  : "border-transparent text-gray-500 hover:text-[#E87028] hover:border-orange-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="mt-4 p-4 md:p-6 space-y-3 md:space-y-4 bg-white rounded-xl shadow-lg">
-          <Link
-            to="/product-type-template"
-            className="block w-full px-4 md:px-6 py-3 md:py-4 border-2 text-center border-pink-300 text-black rounded-lg text-base md:text-lg font-semibold hover:bg-pink-100 hover:border-pink-400 transition-colors duration-200"
-          >
-            Go to Product Type Template
-          </Link>
-          <Link
-            to="/product-list-template"
-            className="block w-full px-4 md:px-6 py-3 md:py-4 border-2 text-center border-pink-300 text-black rounded-lg text-base md:text-lg font-semibold hover:bg-pink-100 hover:border-pink-400 transition-colors duration-200"
-          >
-            Go to Product List Template
-          </Link>
-          <Link
-            to="/product-details-template"
-            className="block w-full px-4 md:px-6 py-3 md:py-4 border-2 text-center border-pink-300 text-black rounded-lg text-base md:text-lg font-semibold hover:bg-pink-100 hover:border-pink-400 transition-colors duration-200"
-          >
-            Go to Product Details Template
-          </Link>
-        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="w-full">
+        <ActiveComponent />
       </div>
     </div>
   );

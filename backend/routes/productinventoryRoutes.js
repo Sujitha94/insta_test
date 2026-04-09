@@ -110,6 +110,7 @@ router.post('/inventory', async (req, res) => {
 });
 
 // Update an existing product
+
 router.put('/inventory/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -119,7 +120,8 @@ router.put('/inventory/:id', async (req, res) => {
       sku, 
       units, 
       quantityInStock, 
-      threshold 
+      threshold,
+      productDescription  // Add this line
     } = req.body;
     
     if (!tenentId) {
@@ -152,7 +154,8 @@ router.put('/inventory/:id', async (req, res) => {
       sku: sku || product.sku,
       units: units || product.units,
       quantityInStock: quantityInStock !== undefined ? quantityInStock : product.quantityInStock,
-      threshold: threshold !== undefined ? threshold : product.threshold
+      threshold: threshold !== undefined ? threshold : product.threshold,
+      productDescription: productDescription || product.productDescription  // Add this line
     }, { new: true });
     
     res.status(200).json({

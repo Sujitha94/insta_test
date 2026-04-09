@@ -28,7 +28,7 @@ const ENV_VARS = [
   "APP_URL",
   "EMAIL_USER",
   "EMAIL_PASS",
-  "WS_SECRET_KEY"
+  "WS_SECRET_KEY",
 ];
 
 module.exports = {
@@ -47,18 +47,18 @@ module.exports = {
   openApiKey: process.env.OPENAI_API_KEY,
   consumerKey: process.env.CONSUMER_KEY,
   consumer_secret: process.env.CONSUMER_SECRET,
-  jwt_secret_key : process.env.JWT_SECRET_KEY,
-  emailUser:process.env.EMAIL_USER,
-  emailPass:process.env.EMAIL_PASS,
-  wsSecretKey:process.env.WS_SECRET_KEY,
-  chromePath:process.env.CHROME_PATH,
-  
-
+  jwt_secret_key: process.env.JWT_SECRET_KEY,
+  emailUser: process.env.EMAIL_USER,
+  emailPass: process.env.EMAIL_PASS,
+  wsSecretKey: process.env.WS_SECRET_KEY,
+  chromePath: process.env.CHROME_PATH,
 
   shopUrl: process.env.SHOP_URL || "https://www.originalcoastclothing.com",
 
   // URL of your app domain. Will be automatically updated.
-  appUrl: process.env.APP_URL || "https://app.instaxbot.com",
+  appUrl:
+    process.env.APP_URL ||
+    "https://inocencia-shiftiest-nonodorously.ngrok-free.dev",
 
   // Preferred port (default to 3000)
   port: process.env.PORT || 80,
@@ -82,5 +82,5 @@ module.exports = {
         console.warn(`WARNING: Missing required environment variable ${key}`);
       }
     });
-  }
+  },
 };

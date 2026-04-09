@@ -1,0 +1,1054 @@
+const express = require('express');
+const router = express.Router();
+const Order = require('../models/Order');
+const Signup = require('../models/Signup');
+const LongToken = require('../models/LongToken');
+const axios = require('axios');
+// SMS Configuration
+const SMS_CONFIG = {
+  authkey: process.env.MSG91_AUTH_KEY || '',
+  url: 'https://control.msg91.com/api/v5/flow/',
+  templates: {
+    ORDER_SHIPPED: process.env.MSG91_ORDER_SHIPPED_TEMPLATE_ID || '675169afd6fc0515df7ccfd2'
+  }
+  // ✅ REMOVED sender configuration
+};
+console.log('SMS Configuration Check:', {
+  hasAuthKey: !!SMS_CONFIG.authkey,
+  authKeyLength: SMS_CONFIG.authkey ? SMS_CONFIG.authkey.length : 0,
+  templateId: SMS_CONFIG.templates.ORDER_SHIPPED,
+  url: SMS_CONFIG.url
+});
+// Enhanced Instagram message sending
+async function sendInstagramMessage(igId, userAccessToken, recipientId, messageText1) {
+  const url = `https://graph.instagram.com/v21.0/${igId}/messages`;
+  const messageTextWithEmoji = " 🤖:" + messageText1;
+  const data = {
+    recipient: { id: recipientId },
+    message: { text: messageTextWithEmoji }
+  };
+
+  try {
+    const response = await axios.post(url, data, {
+      headers: {
+        'Authorization': `Bearer ${userAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+    
+    console.log('Instagram message sent successfully', response.data);
+    return { success: true, message: messageTextWithEmoji };
+    
+  } catch (error) {
+    console.error('Instagram message sending failed:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+      recipientId: recipientId
+    });
+    
+    throw new Error(`Instagram message failed: ${error.response?.data?.error?.message || error.message}`);
+  }
+}
+
+// Determine shipping partner from tracking number
+function determineShippingPartner(trackingNumber) {
+  if (!trackingNumber) return "Unknown";
+
+  const tracking = String(trackingNumber);
+
+  if (tracking.startsWith("7D109")) return "DTDC";
+  if (tracking.startsWith("CT")) return "INDIA POST";
+  if (tracking.startsWith("C1")) return "DTDC";
+  if (tracking.startsWith("58")) return "ST COURIER";
+  if (tracking.startsWith("500")) return "TRACKON";
+  if (tracking.startsWith("10000")) return "TRACKON";
+  if (/^10(?!000)/.test(trackingNumber)) return "TRACKON";
+  if (tracking.startsWith("SM")) return "SINGPOST";
+  if (tracking.startsWith("33")) return "ECOM";  
+  if (tracking.startsWith("SR") || tracking.startsWith("EP")) return "EKART";  
+  if (tracking.startsWith("14")) return "XPRESSBEES";  
+  if (tracking.startsWith("S")) return "SHIP ROCKET";  
+  if (tracking.startsWith("1")) return "SHIP ROCKET";
+  if (tracking.startsWith("7")) return "DELHIVERY";
+  if (tracking.startsWith("JT")) return "J&T";
+  
+  return "Unknown";
+}
+
+// Get tracking URL based on shipping partner
+function getTrackingUrl(shippingPartner, trackingNumber) {
+  switch (shippingPartner) {
+    case "INDIA POST":
+      return `https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx`;
+    case "ST COURIER":
+      return `https://stcourier.com/track/shipment?${trackingNumber}`;
+    case "DTDC":
+      return `https://www.dtdc.in/trace.asp`;
+    case "TRACKON":
+      return `https://trackon.in/data/SingleShipment/`;
+    case "SHIP ROCKET":
+      return `https://www.shiprocket.in/shipment-tracking/`;
+    case "DELHIVERY":
+      return `https://www.delhivery.com/`;
+    case "ECOM":
+      return `https://ecomexpress.in/tracking/`;
+    case "EKART":
+      return `https://ekartlogistics.com/track`;
+    case "XPRESSBEES":
+      return `https://www.xpressbees.com/track`;
+    default:
+      return `https://www.dtdc.in/trace.asp`;
+  }
+}
+
+
+// Format products for shipped notification
+function formatProductsForShippedSMS(products) {
+  console.log('formatProductsForShippedSMS input:', JSON.stringify(products, null, 2));
+  
+  if (!products || !Array.isArray(products) || products.length === 0) {
+    return 'Your items';
+  }
+
+  try {
+    if (products.length <= 2) {
+      // Show all products if 2 or fewer
+      return products.map(p => p.product_name || p.name || 'Item').join(', ');
+    } else {
+      // Show first 2 + count for more
+      const firstTwo = products.slice(0, 2).map(p => p.product_name || p.name || 'Item');
+      return `${firstTwo.join(', ')}, +${products.length - 2} more`;
+    }
+  } catch (error) {
+    console.error('Error formatting products for shipped SMS:', error);
+    return 'Your items';
+  }
+}
+
+// Enhanced SMS sending for shipped orders
+async function sendShippedSMSFallback(phoneNumber, companyName, products, trackingNumber, weight, shippingPartner, trackingUrl) {
+  try {
+    console.log('=== SHIPPED SMS FALLBACK DEBUG START ===');
+    console.log('Input parameters:', {
+      phoneNumber,
+      companyName,
+      products: products ? products.length : 0,
+      trackingNumber,
+      weight,
+      shippingPartner,
+      trackingUrl
+    });
+
+    // Validate SMS configuration
+    console.log('SMS Config validation:', {
+      hasAuthKey: !!SMS_CONFIG.authkey,
+      authKeyPreview: SMS_CONFIG.authkey ? `${SMS_CONFIG.authkey.substring(0, 10)}...` : 'MISSING',
+      templateId: SMS_CONFIG.templates.ORDER_SHIPPED,
+      url: SMS_CONFIG.url
+    });
+    
+    if (!phoneNumber || !SMS_CONFIG.authkey) {
+      throw new Error(`Missing required data: phoneNumber=${!!phoneNumber}, authkey=${!!SMS_CONFIG.authkey}`);
+    }
+
+    // Clean and validate phone number
+    console.log('=== PHONE NUMBER PROCESSING ===');
+    console.log('Original phone number:', phoneNumber);
+    console.log('Phone number type:', typeof phoneNumber);
+    console.log('Phone number length:', phoneNumber ? phoneNumber.length : 'null');
+
+    const cleanPhone = String(phoneNumber).replace(/\D/g, '');
+    console.log('Cleaned phone number:', cleanPhone);
+    console.log('Cleaned phone length:', cleanPhone.length);
+
+    if (cleanPhone.length < 10) {
+      throw new Error(`Invalid phone number format. Original: "${phoneNumber}", Cleaned: "${cleanPhone}", Length: ${cleanPhone.length}`);
+    }
+
+    // Format data for SMS
+    const storeName = companyName && companyName.trim() ? companyName.trim() : 'Store';
+    const productsText = formatProductsForShippedSMS(products);
+    const weightKg = (parseFloat(weight) / 1000).toFixed(2);
+
+    console.log('=== FORMATTED SMS DATA ===');
+    console.log('Store name:', storeName);
+    console.log('Products text:', productsText);
+    console.log('Weight (kg):', weightKg);
+    console.log('Shipping partner:', shippingPartner);
+    console.log('Tracking URL:', trackingUrl);
+
+    // SMS variables mapping
+    const smsVariables = {
+      var1: storeName,                    // Company name
+      var2: productsText,                 // Products list
+      var3: '',                           // Empty
+      var4: shippingPartner,              // Courier name
+      var5: trackingNumber,               // Tracking ID
+      var6: `${weightKg} kg`,             // Weight
+      var7: trackingUrl,                  // Tracking URL
+      var8: storeName                     // Company name again
+    };
+
+    console.log('=== SMS VARIABLES MAPPING ===');
+    Object.keys(smsVariables).forEach(key => {
+      console.log(`${key}: "${smsVariables[key]}" (length: ${smsVariables[key] ? smsVariables[key].length : 0})`);
+    });
+
+    // Build SMS payload
+    const smsPayload = {
+      template_id: SMS_CONFIG.templates.ORDER_SHIPPED,
+      short_url: "1",
+      recipients: [{
+        mobiles: `91${cleanPhone}`,
+        var1: smsVariables.var1,
+        var2: smsVariables.var2,
+        var3: smsVariables.var3,
+        var4: smsVariables.var4,
+        var5: smsVariables.var5,
+        var6: smsVariables.var6,
+        var7: smsVariables.var7,
+        var8: smsVariables.var8
+      }]
+    };
+
+    console.log('=== SMS PAYLOAD ===');
+    console.log(JSON.stringify(smsPayload, null, 2));
+
+    // Make API call
+    console.log('=== MAKING SMS API CALL ===');
+    console.log('API URL:', SMS_CONFIG.url);
+    console.log('Request headers:', {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+      'authkey': `${SMS_CONFIG.authkey.substring(0, 10)}...`
+    });
+
+    const response = await axios.post(SMS_CONFIG.url, smsPayload, {
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'authkey': SMS_CONFIG.authkey
+      },
+      timeout: 15000
+    });
+
+    console.log('=== SMS API RESPONSE ===');
+    console.log('Response Status:', response.status);
+    console.log('Response Headers:', response.headers);
+    console.log('Response Data:', JSON.stringify(response.data, null, 2));
+
+    if (response.status === 200) {
+      console.log('✅ SMS sent successfully!');
+      return { success: true, response: response.data };
+    } else {
+      throw new Error(`SMS API returned unexpected status: ${response.status}`);
+    }
+
+  } catch (error) {
+    console.error('=== SMS ERROR DETAILS ===');
+    console.error('Error Type:', error.constructor.name);
+    console.error('Error Message:', error.message);
+    
+    if (error.response) {
+      console.error('HTTP Response Error:');
+      console.error('Status:', error.response.status);
+      console.error('Status Text:', error.response.statusText);
+      console.error('Headers:', error.response.headers);
+      console.error('Data:', JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      console.error('Request Error - No Response Received:');
+      console.error('Request Config:', error.config);
+    } else {
+      console.error('Setup Error:', error.message);
+    }
+    
+    console.error('Error Stack:', error.stack);
+    console.error('=== END SMS ERROR DETAILS ===');
+    
+    throw error;
+  }
+}
+
+// Send order shipped notification
+async function sendOrderShippedNotification(order, trackingNumber, weight) {
+  console.log('=== SENDING SHIPPED NOTIFICATION START ===');
+  console.log('Order ID:', order.orderId);
+  console.log('Tenant ID:', order.tenentId);
+  console.log('Sender ID:', order.senderId);
+  console.log('Tracking Number:', trackingNumber);
+  console.log('Weight:', weight);
+
+  // ✅ SPECIFIC PHONE NUMBER DEBUGGING FOR SCHEMA
+  console.log('=== PHONE NUMBER FROM ORDER SCHEMA ===');
+  console.log('order.phone_number:', order.phone_number);
+  console.log('phone_number type:', typeof order.phone_number);
+  console.log('phone_number length:', order.phone_number ? order.phone_number.length : 'null');
+  console.log('phone_number is truthy:', !!order.phone_number);
+
+  const tenentId = order.tenentId;
+  const senderId = order.senderId;
+
+  // Determine shipping partner and tracking URL
+  const shippingPartner = determineShippingPartner(trackingNumber);
+  const trackingUrl = getTrackingUrl(shippingPartner, trackingNumber);
+
+  // Fetch username from Signup collection
+  let username = 'Store';
+  try {
+    const usernamedata = await Signup.findOne({ tenentId: tenentId })
+      .sort({ createdAt: -1 })
+      .limit(1);
+
+    if (usernamedata && usernamedata.name) {
+      username = usernamedata.name;
+    }
+    console.log('Company name found:', username);
+  } catch (err) {
+    console.warn('Failed to fetch username for shipped notification:', err.message);
+  }
+
+  let notificationSent = false;
+  let notificationMethod = null;
+  let notificationError = null;
+
+  // Try Instagram first
+  try {
+    console.log('Attempting Instagram shipped notification for order:', order.orderId);
+
+    const latestToken = await LongToken.findOne({ tenentId: tenentId })
+      .sort({ createdAt: -1 })
+      .limit(1);
+
+    if (latestToken && latestToken.userAccessToken && latestToken.Instagramid) {
+      const productsText = formatProductsForShippedSMS(order.products);
+      const weightKg = (parseFloat(weight) / 1000).toFixed(2);
+      
+      const messageText = `🚚 Order Shipped! 🚚\n\nOrder ID: ${order.orderId}\nProducts: ${productsText}\nStatus: In Transit\nCourier: ${shippingPartner}\nTracking ID: ${trackingNumber}\nWeight: ${weightKg} kg\n\n📦 Track your order: ${trackingUrl}\n\nYour order has been shipped with ${shippingPartner}. You can track your package using the tracking number above.\n\nThank you for choosing ${username}! 🙏`;
+
+      await sendInstagramMessage(
+        latestToken.Instagramid,
+        latestToken.userAccessToken,
+        senderId,
+        messageText
+      );
+
+      notificationSent = true;
+      notificationMethod = 'instagram';
+      console.log('Instagram shipped notification sent successfully');
+    } else {
+      console.log('Instagram credentials not available - falling back to SMS');
+      throw new Error('Instagram credentials not available');
+    }
+
+  } catch (instagramError) {
+    console.error('Instagram shipped notification failed, trying SMS fallback:', instagramError.message);
+    notificationError = instagramError.message;
+
+    // ✅ SMS Fallback using phone_number field specifically
+    try {
+      console.log('=== SMS FALLBACK ATTEMPT ===');
+      
+      // Use the phone_number field from the schema
+      const phoneNumber = order.phone_number;
+      
+      console.log('Phone number extracted:', phoneNumber);
+      console.log('Phone number validation:', {
+        exists: !!phoneNumber,
+        type: typeof phoneNumber,
+        length: phoneNumber ? phoneNumber.length : 0,
+        value: phoneNumber
+      });
+
+      if (!phoneNumber) {
+        throw new Error('No phone_number field available in order for SMS fallback');
+      }
+
+      console.log('Calling sendShippedSMSFallback with phone:', phoneNumber);
+      
+      const smsResult = await sendShippedSMSFallback(
+        phoneNumber,
+        username,
+        order.products,
+        trackingNumber,
+        weight,
+        shippingPartner,
+        trackingUrl
+      );
+
+      console.log('SMS Result received:', smsResult);
+
+      if (smsResult && smsResult.success) {
+        console.log('✅ Shipped SMS fallback sent successfully');
+        notificationSent = true;
+        notificationMethod = 'sms_fallback';
+      } else {
+        throw new Error('SMS API call returned unsuccessful result');
+      }
+
+    } catch (smsError) {
+      console.error('❌ Shipped SMS fallback failed:', smsError.message);
+      console.error('SMS Error Stack:', smsError.stack);
+      notificationError = `Instagram: ${instagramError.message}; SMS: ${smsError.message}`;
+    }
+  }
+
+  // Update order with notification status
+  try {
+    const updateResult = await Order.findByIdAndUpdate(order._id, {
+      $set: {
+        shippedNotificationSent: notificationSent,
+        shippedNotificationMethod: notificationMethod,
+        shippedNotificationError: notificationError,
+        shippedNotificationAttemptedAt: new Date(),
+        shipping_partner: shippingPartner
+      }
+    });
+    console.log('Order notification status updated successfully');
+  } catch (updateError) {
+    console.error('Failed to update shipped notification status:', updateError);
+  }
+
+  const result = {
+    success: notificationSent,
+    method: notificationMethod,
+    error: notificationError,
+    shippingPartner: shippingPartner
+  };
+
+  console.log('=== FINAL NOTIFICATION RESULT ===');
+  console.log(JSON.stringify(result, null, 2));
+  console.log('=== SENDING SHIPPED NOTIFICATION END ===');
+
+  return result;
+}
+
+// ✅ ENHANCED Route to update tracking information with notifications
+router.post('/update-tracking', async (req, res) => {
+  try {
+    const { orderNumber, trackingNumber, weight, tenentId } = req.body;
+
+    console.log('=== UPDATE TRACKING REQUEST START ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+    // Input validation
+    if (!orderNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order number is required'
+      });
+    }
+
+    if (!trackingNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tracking number is required'
+      });
+    }
+
+    if (!weight || isNaN(weight) || weight <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid weight is required'
+      });
+    }
+
+    if (!tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant ID is required'
+      });
+    }
+
+    // Find the order
+    const query = { 
+      orderId: orderNumber,
+      tenentId: tenentId 
+    };
+
+    console.log('=== SEARCHING FOR ORDER ===');
+    console.log('Query:', query);
+
+    const existingOrder = await Order.findOne(query);
+
+    if (!existingOrder) {
+      console.log('❌ Order not found');
+      return res.status(404).json({ 
+        success: false,
+        message: `Order not found for tenant ${tenentId}`
+      });
+    }
+
+    console.log('✅ Order found successfully');
+    console.log('=== ORDER DETAILS ===');
+    console.log('Order ID:', existingOrder.orderId);
+    console.log('Order Status:', existingOrder.status);
+    console.log('Tenant ID:', existingOrder.tenentId);
+    console.log('Sender ID:', existingOrder.senderId);
+    console.log('Customer Name:', existingOrder.customer_name);
+    console.log('Phone Number:', existingOrder.phone_number);
+    console.log('Products Count:', existingOrder.products ? existingOrder.products.length : 0);
+
+    // Validate order status
+    const validStatuses = ['PAID', 'PROCESSING', 'PACKED', 'paid', 'processing', 'packed', 'SHIPPED', 'shipped','PRINTED','HOLDED','COMPLETED'];
+    const currentStatus = existingOrder.status?.toUpperCase();
+    
+    if (!validStatuses.includes(existingOrder.status) && !validStatuses.includes(currentStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot update tracking for order with status: ${existingOrder.status}. Valid statuses: ${validStatuses.join(', ')}`
+      });
+    }
+
+    // Check for duplicate tracking numbers
+    const duplicateTracking = await Order.findOne({
+      tracking_number: trackingNumber,
+      tenentId: tenentId,
+      orderId: { $ne: orderNumber }
+    });
+
+    if (duplicateTracking) {
+      return res.status(409).json({
+        success: false,
+        message: `Tracking number ${trackingNumber} already exists for another order in this tenant`
+      });
+    }
+
+    // Determine shipping partner
+    const shippingPartner = determineShippingPartner(trackingNumber);
+
+    // Update order
+    const updateData = {
+      tracking_number: trackingNumber,
+      weight: parseFloat(weight),
+      tracking_status: 'SHIPPED',
+      status: 'COMPLETED',
+      shipping_partner: shippingPartner,
+      updated_at: new Date()
+    };
+
+    console.log('=== UPDATING ORDER ===');
+    console.log('Update data:', updateData);
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      query,
+      updateData,
+      { 
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Failed to update order'
+      });
+    }
+
+    console.log('✅ Order updated successfully');
+
+    // ✅ Send notification
+    console.log('=== STARTING NOTIFICATION PROCESS ===');
+    let notificationResult = null;
+    try {
+      notificationResult = await sendOrderShippedNotification(updatedOrder, trackingNumber, weight);
+    } catch (notificationError) {
+      console.error('❌ Notification process failed:', notificationError);
+    }
+
+    console.log('=== UPDATE TRACKING REQUEST END ===');
+
+    // Return response
+    res.status(200).json({
+      success: true,
+      message: 'Tracking information updated successfully and notification attempted',
+      data: {
+        orderId: updatedOrder.orderId,
+        trackingNumber: updatedOrder.tracking_number,
+        weight: updatedOrder.weight,
+        status: updatedOrder.status,
+        trackingStatus: updatedOrder.tracking_status,
+        shippingPartner: updatedOrder.shipping_partner,
+        tenentId: updatedOrder.tenentId,
+        updatedAt: updatedOrder.updated_at,
+        notification: notificationResult
+      }
+    });
+
+  } catch (error) {
+    console.error('=== UPDATE TRACKING ERROR ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating tracking information',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+// Route to get tracking information for an order
+router.get('/get-tracking/:orderNumber/:tenentId', async (req, res) => {
+  try {
+    const { orderNumber, tenentId } = req.params;
+
+    if (!orderNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order number is required'
+      });
+    }
+
+    if (!tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant ID is required'
+      });
+    }
+
+    // Build the query with mandatory tenentId
+    const query = { 
+      orderId: orderNumber,
+      tenentId: tenentId 
+    };
+
+    // Find the order and select only tracking-related fields
+    const order = await Order.findOne(query)
+      .select('orderId tracking_number weight tracking_status status customer_name shipping_partner tenentId updated_at created_at')
+      .lean();
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: `Order not found for tenant ${tenentId}`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orderId: order.orderId,
+        trackingNumber: order.tracking_number || null,
+        weight: order.weight || null,
+        trackingStatus: order.tracking_status || 'NOT_SHIPPED',
+        orderStatus: order.status,
+        customerName: order.customer_name,
+        shippingPartner: order.shipping_partner,
+        tenentId: order.tenentId,
+        updatedAt: order.updated_at,
+        createdAt: order.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tracking information:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching tracking information',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Route to get all orders that need tracking (shipped but no tracking number)
+router.get('/pending-tracking/:tenentId', async (req, res) => {
+  try {
+    const { tenentId } = req.params;
+
+    if (!tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant ID is required'
+      });
+    }
+
+    // Build the query to find orders that are packed/ready to ship but don't have tracking
+    const query = {
+      tenentId: tenentId,
+      $and: [
+        {
+          $or: [
+            { status: { $in: ['PACKED', 'packed', 'PROCESSING', 'processing', 'PAID', 'paid'] } },
+            { packing_status: 'COMPLETED' }
+          ]
+        },
+        {
+          $or: [
+            { tracking_number: { $exists: false } },
+            { tracking_number: null },
+            { tracking_number: '' }
+          ]
+        }
+      ]
+    };
+
+    const ordersNeedingTracking = await Order.find(query)
+      .select('orderId customer_name status packing_status tenentId created_at updated_at weight phone_number')
+      .sort({ created_at: -1 }) // Most recent first
+      .limit(100) // Increased limit for better usability
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      tenentId: tenentId,
+      count: ordersNeedingTracking.length,
+      orders: ordersNeedingTracking
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending tracking orders:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching pending tracking orders',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Route to bulk update tracking information
+router.post('/bulk-update-tracking', async (req, res) => {
+  try {
+    const { orders, tenentId } = req.body;
+
+    if (!tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant ID is required for bulk operations'
+      });
+    }
+
+    if (!Array.isArray(orders) || orders.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Orders array is required and cannot be empty'
+      });
+    }
+
+    if (orders.length > 50) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum 50 orders allowed per bulk operation'
+      });
+    }
+
+    console.log(`Processing bulk update for ${orders.length} orders in tenant: ${tenentId}`);
+
+    // Validate each order in the array
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i];
+      if (!order.orderNumber || !order.trackingNumber || !order.weight) {
+        return res.status(400).json({
+          success: false,
+          message: `Order at index ${i} is missing required fields (orderNumber, trackingNumber, weight)`
+        });
+      }
+
+      if (isNaN(order.weight) || order.weight <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Order at index ${i} has invalid weight: ${order.weight}`
+        });
+      }
+    }
+
+    // Check for duplicate tracking numbers within the batch
+    const trackingNumbers = orders.map(o => o.trackingNumber);
+    const duplicatesInBatch = trackingNumbers.filter((item, index) => trackingNumbers.indexOf(item) !== index);
+    
+    if (duplicatesInBatch.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Duplicate tracking numbers found in batch: ${duplicatesInBatch.join(', ')}`
+      });
+    }
+
+    // Check for existing tracking numbers in database for this tenant
+    const existingTracking = await Order.find({
+      tenentId: tenentId,
+      tracking_number: { $in: trackingNumbers }
+    }).select('tracking_number orderId');
+
+    if (existingTracking.length > 0) {
+      const conflicts = existingTracking.map(o => `${o.tracking_number} (Order: ${o.orderId})`);
+      return res.status(409).json({
+        success: false,
+        message: `Tracking numbers already exist: ${conflicts.join(', ')}`
+      });
+    }
+
+    const results = [];
+    const errors = [];
+
+    // Process each order
+    for (const orderData of orders) {
+      try {
+        const query = { 
+          orderId: orderData.orderNumber,
+          tenentId: tenentId 
+        };
+
+        const updateData = {
+          tracking_number: orderData.trackingNumber,
+          weight: parseFloat(orderData.weight),
+          tracking_status: 'SHIPPED',
+          status: 'COMPLETED',
+          updated_at: new Date()
+        };
+
+        const updatedOrder = await Order.findOneAndUpdate(
+          query,
+          updateData,
+          { new: true, runValidators: true }
+        );
+
+        if (updatedOrder) {
+          results.push({
+            orderId: orderData.orderNumber,
+            success: true,
+            trackingNumber: orderData.trackingNumber,
+            weight: orderData.weight,
+            tenentId: updatedOrder.tenentId
+          });
+          
+          console.log(`Bulk updated: OrderID=${orderData.orderNumber}, TrackingNumber=${orderData.trackingNumber}, Weight=${orderData.weight}gms, TenentID=${tenentId}`);
+        } else {
+          errors.push({
+            orderId: orderData.orderNumber,
+            error: 'Order not found in tenant'
+          });
+        }
+
+      } catch (error) {
+        errors.push({
+          orderId: orderData.orderNumber,
+          error: error.message
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      tenentId: tenentId,
+      message: `Processed ${orders.length} orders`,
+      results: {
+        successful: results.length,
+        failed: errors.length,
+        successfulOrders: results,
+        failedOrders: errors
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in bulk tracking update:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk tracking update',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Route to update shipping partner information
+router.post('/update-shipping-partner', async (req, res) => {
+  try {
+    const { orderNumber, shippingPartner, tenentId } = req.body;
+
+    if (!orderNumber || !shippingPartner || !tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order number, shipping partner, and tenant ID are required'
+      });
+    }
+
+    console.log(`Updating shipping partner for order: ${orderNumber}, tenentId: ${tenentId}`);
+
+    const query = { 
+      orderId: orderNumber,
+      tenentId: tenentId 
+    };
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      query,
+      { 
+        shipping_partner: shippingPartner,
+        updated_at: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: `Order not found for tenant ${tenentId}`
+      });
+    }
+
+    console.log(`Successfully updated shipping partner: ${shippingPartner} for order ${orderNumber} in tenant ${tenentId}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Shipping partner updated successfully',
+      data: {
+        orderId: updatedOrder.orderId,
+        shippingPartner: updatedOrder.shipping_partner,
+        tenentId: updatedOrder.tenentId
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating shipping partner:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating shipping partner',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Route to get tracking statistics for a tenant
+router.get('/tracking-stats/:tenentId', async (req, res) => {
+  try {
+    const { tenentId } = req.params;
+
+    if (!tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant ID is required'
+      });
+    }
+
+    const matchQuery = { tenentId: tenentId };
+
+    const stats = await Order.aggregate([
+      { $match: matchQuery },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          shippedOrders: {
+            $sum: {
+              $cond: [
+                { $and: [
+                  { $ne: ["$tracking_number", null] },
+                  { $ne: ["$tracking_number", ""] },
+                  { $exists: ["$tracking_number", true] }
+                ]},
+                1,
+                0
+              ]
+            }
+          },
+          pendingTracking: {
+            $sum: {
+              $cond: [
+                { $and: [
+                  { $or: [
+                    { $in: ["$status", ["PACKED", "packed", "PROCESSING", "processing", "PAID", "paid"]] },
+                    { $eq: ["$packing_status", "COMPLETED"] }
+                  ]},
+                  { $or: [
+                    { $eq: ["$tracking_number", null] },
+                    { $eq: ["$tracking_number", ""] },
+                    { $not: { $exists: ["$tracking_number", true] } }
+                  ]}
+                ]},
+                1,
+                0
+              ]
+            }
+          },
+          averageWeight: { $avg: "$weight" },
+          totalWeight: { $sum: "$weight" },
+          statusBreakdown: {
+            $push: "$status"
+          }
+        }
+      }
+    ]);
+
+    const result = stats.length > 0 ? stats[0] : {
+      totalOrders: 0,
+      shippedOrders: 0,
+      pendingTracking: 0,
+      averageWeight: 0,
+      totalWeight: 0,
+      statusBreakdown: []
+    };
+
+    // Calculate status breakdown
+    const statusCounts = {};
+    result.statusBreakdown.forEach(status => {
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        tenentId: tenentId,
+        totalOrders: result.totalOrders,
+        shippedOrders: result.shippedOrders,
+        pendingTracking: result.pendingTracking,
+        shippingRate: result.totalOrders > 0 ? Math.round((result.shippedOrders / result.totalOrders) * 100) : 0,
+        averageWeight: Math.round(result.averageWeight * 100) / 100 || 0,
+        totalWeight: Math.round(result.totalWeight * 100) / 100 || 0,
+        statusBreakdown: statusCounts
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tracking statistics:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching tracking statistics',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Route to search orders by tracking number within a tenant
+router.get('/search-by-tracking/:tenentId/:trackingNumber', async (req, res) => {
+  try {
+    const { tenentId, trackingNumber } = req.params;
+
+    if (!tenentId || !trackingNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant ID and tracking number are required'
+      });
+    }
+
+    const order = await Order.findOne({
+      tenentId: tenentId,
+      tracking_number: trackingNumber
+    }).select('orderId customer_name status tracking_status weight shipping_partner created_at updated_at');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: `No order found with tracking number ${trackingNumber} in tenant ${tenentId}`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: order
+    });
+
+  } catch (error) {
+    console.error('Error searching by tracking number:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while searching orders',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+module.exports = router;

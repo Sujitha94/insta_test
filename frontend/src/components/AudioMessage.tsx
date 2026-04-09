@@ -30,7 +30,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       <div className={`max-w-[350px] min-w-[200px] rounded-[20px] px-6 py-3 ${
         isMessageSide 
           ? 'bg-white shadow-md border border-gray-200' 
-          : 'bg-blue-500 text-white'
+          : 'bg-[#FAE8D6]'
       }`}>
         <audio controls className="w-full mb-2">
           <source src={audioUrl} type="audio/mpeg" />
@@ -44,7 +44,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
         )}
         
         <div className={`text-xs mt-2 ${
-          isMessageSide ? 'text-gray-500' : 'text-white opacity-70'
+          isMessageSide ? 'text-gray-500' : 'text-gray-600 opacity-70'
         }`}>
           {timestamp}
         </div>

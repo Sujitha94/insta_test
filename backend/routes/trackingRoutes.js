@@ -21,7 +21,7 @@ console.log('SMS Configuration Check:', {
 });
 // Enhanced Instagram message sending
 async function sendInstagramMessage(igId, userAccessToken, recipientId, messageText1) {
-  const url = `https://graph.instagram.com/v21.0/${igId}/messages`;
+  const url = `https://graph.instagram.com/v23.0/${igId}/messages`;
   const messageTextWithEmoji = " 🤖:" + messageText1;
   const data = {
     recipient: { id: recipientId },
@@ -112,12 +112,28 @@ function formatProductsForShippedSMS(products) {
   }
 
   try {
+    // Helper function to format individual product with unit and quantity
+    const formatProductWithQuantity = (product) => {
+      const productName = product.product_name || product.name || 'Item';
+      const selectedUnit = product.selectedunit || product.selected_unit || product.unit;
+      const quantity = product.quantity || 1;
+      
+      // Build the product name with unit if available
+      let fullProductName = productName;
+      if (selectedUnit && selectedUnit.trim()) {
+        fullProductName = `${productName} (${selectedUnit.trim()})`;
+      }
+      
+      // Add quantity to show individual product quantities
+      return `${fullProductName} x${quantity}`;
+    };
+
     if (products.length <= 2) {
-      // Show all products if 2 or fewer
-      return products.map(p => p.product_name || p.name || 'Item').join(', ');
+      // Show all products with quantities if 2 or fewer
+      return products.map(formatProductWithQuantity).join(', ');
     } else {
-      // Show first 2 + count for more
-      const firstTwo = products.slice(0, 2).map(p => p.product_name || p.name || 'Item');
+      // Show first 2 with quantities + count for more
+      const firstTwo = products.slice(0, 2).map(formatProductWithQuantity);
       return `${firstTwo.join(', ')}, +${products.length - 2} more`;
     }
   } catch (error) {
@@ -324,7 +340,7 @@ async function sendOrderShippedNotification(order, trackingNumber, weight) {
       const productsText = formatProductsForShippedSMS(order.products);
       const weightKg = (parseFloat(weight) / 1000).toFixed(2);
       
-      const messageText = `🚚 Order Shipped! 🚚\n\n*Order ID:* ${order.orderId}\n*Products:* ${productsText}\n*Status:* In Transit\n*Courier:* ${shippingPartner}\n*Tracking ID:* ${trackingNumber}\n*Weight:* ${weightKg} kg\n\n📦 Track your order: ${trackingUrl}\n\nYour order has been shipped with ${shippingPartner}. You can track your package using the tracking number above.\n\nThank you for choosing ${username}! 🙏`;
+      const messageText = `🚚 Order Shipped! 🚚\n\nOrder ID: ${order.orderId}\nProducts: ${productsText}\nStatus: In Transit\nCourier: ${shippingPartner}\nTracking ID: ${trackingNumber}\nWeight: ${weightKg} kg\n\n📦 Track your order: ${trackingUrl}\n\nYour order has been shipped with ${shippingPartner}. You can track your package using the Tracking ID above.\n\nThank you for choosing ${username}! 🙏`;
 
       await sendInstagramMessage(
         latestToken.Instagramid,
@@ -489,14 +505,71 @@ router.post('/update-tracking', async (req, res) => {
     console.log('Phone Number:', existingOrder.phone_number);
     console.log('Products Count:', existingOrder.products ? existingOrder.products.length : 0);
 
-    // Validate order status
-    const validStatuses = ['PAID', 'PROCESSING', 'PACKED', 'paid', 'processing', 'packed', 'SHIPPED', 'shipped','PRINTED','HOLDED','COMPLETED'];
+    // ✅ ENHANCED STATUS VALIDATION WITH SPECIFIC RESPONSES
     const currentStatus = existingOrder.status?.toUpperCase();
+
+    // =====================================
+    // ADD YOUR SPECIFIC TENANT ID HERE
+    // =====================================
+    const BYPASS_TENENT_ID = "9359d235-437d-46e4-95eb-a90195091aba";
     
-    if (!validStatuses.includes(existingOrder.status) && !validStatuses.includes(currentStatus)) {
+    // Check for CREATED status - Payment pending
+    if (currentStatus === 'CREATED') {
       return res.status(400).json({
         success: false,
-        message: `Cannot update tracking for order with status: ${existingOrder.status}. Valid statuses: ${validStatuses.join(', ')}`
+        statusCheck: 'PAYMENT_PENDING',
+        message: 'Payment is pending',
+        orderStatus: existingOrder.status
+      });
+    }
+
+    // Check for PROCESSING status - Print and pack not taken (ONLY IF NOT BYPASSED)
+    if (currentStatus === 'PROCESSING' && tenentId !== BYPASS_TENENT_ID) {
+      return res.status(400).json({
+        success: false,
+        statusCheck: 'PRINT_PACK_PENDING',
+        message: 'You didn\'t take print and pack',
+        orderStatus: existingOrder.status
+      });
+    }
+
+    // Check for PRINTED status - Pack not taken (ONLY IF NOT BYPASSED)
+    if (currentStatus === 'PRINTED' && tenentId !== BYPASS_TENENT_ID) {
+      return res.status(400).json({
+        success: false,
+        statusCheck: 'PACK_PENDING',
+        message: 'You didn\'t take pack',
+        orderStatus: existingOrder.status
+      });
+    }
+
+    // Check for COMPLETED status - Already shipped, need confirmation
+    if (currentStatus === 'COMPLETED') {
+      return res.status(200).json({
+        success: false,
+        statusCheck: 'ALREADY_SHIPPED',
+        message: 'You already shipped this order',
+        orderStatus: existingOrder.status,
+        currentTrackingNumber: existingOrder.tracking_number,
+        currentWeight: existingOrder.weight,
+        currentShippingPartner: existingOrder.shipping_partner
+      });
+    }
+
+    // Validate order status for processing
+    const validStatuses = ['PAID', 'PACKED', 'HOLDED'];
+
+    // ADD PROCESSING and PRINTED to valid statuses if this is the bypass tenant
+    if (tenentId === BYPASS_TENENT_ID) {
+      validStatuses.push('PROCESSING', 'PRINTED');
+    }
+    
+    if (!validStatuses.includes(currentStatus)) {
+      return res.status(400).json({
+        success: false,
+        statusCheck: 'INVALID_STATUS',
+        message: `Cannot update tracking for order with status: ${existingOrder.status}. Valid statuses: ${validStatuses.join(', ')}`,
+        orderStatus: existingOrder.status
       });
     }
 
@@ -522,7 +595,7 @@ router.post('/update-tracking', async (req, res) => {
       tracking_number: trackingNumber,
       weight: parseFloat(weight),
       tracking_status: 'SHIPPED',
-      status: 'SHIPPED',
+      status: 'COMPLETED',
       shipping_partner: shippingPartner,
       updated_at: new Date()
     };
@@ -584,6 +657,136 @@ router.post('/update-tracking', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while updating tracking information',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// ✅ NEW ROUTE: Force update tracking (for COMPLETED orders after confirmation)
+router.post('/force-update-tracking', async (req, res) => {
+  try {
+    const { orderNumber, trackingNumber, weight, tenentId, confirmOverride } = req.body;
+
+    console.log('=== FORCE UPDATE TRACKING REQUEST START ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+    // Input validation
+    if (!orderNumber || !trackingNumber || !weight || !tenentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required for force update'
+      });
+    }
+
+    if (!confirmOverride) {
+      return res.status(400).json({
+        success: false,
+        message: 'Confirmation required for force update'
+      });
+    }
+
+    // Find the order
+    const query = { 
+      orderId: orderNumber,
+      tenentId: tenentId 
+    };
+
+    const existingOrder = await Order.findOne(query);
+
+    if (!existingOrder) {
+      return res.status(404).json({ 
+        success: false,
+        message: `Order not found for tenant ${tenentId}`
+      });
+    }
+
+    // Check for duplicate tracking numbers (excluding current order)
+    const duplicateTracking = await Order.findOne({
+      tracking_number: trackingNumber,
+      tenentId: tenentId,
+      orderId: { $ne: orderNumber }
+    });
+
+    if (duplicateTracking) {
+      return res.status(409).json({
+        success: false,
+        message: `Tracking number ${trackingNumber} already exists for another order in this tenant`
+      });
+    }
+
+    // Determine shipping partner
+    const shippingPartner = determineShippingPartner(trackingNumber);
+
+    // Update order (force update even if COMPLETED)
+    const updateData = {
+      tracking_number: trackingNumber,
+      weight: parseFloat(weight),
+      tracking_status: 'SHIPPED',
+      status: 'COMPLETED',
+      shipping_partner: shippingPartner,
+      updated_at: new Date(),
+      force_updated: true,
+      force_updated_at: new Date()
+    };
+
+    console.log('=== FORCE UPDATING ORDER ===');
+    console.log('Update data:', updateData);
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      query,
+      updateData,
+      { 
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Failed to force update order'
+      });
+    }
+
+    console.log('✅ Order force updated successfully');
+
+    // Send notification
+    console.log('=== STARTING NOTIFICATION PROCESS ===');
+    let notificationResult = null;
+    try {
+      notificationResult = await sendOrderShippedNotification(updatedOrder, trackingNumber, weight);
+    } catch (notificationError) {
+      console.error('❌ Notification process failed:', notificationError);
+    }
+
+    console.log('=== FORCE UPDATE TRACKING REQUEST END ===');
+
+    // Return response
+    res.status(200).json({
+      success: true,
+      message: 'Tracking information force updated successfully and notification attempted',
+      data: {
+        orderId: updatedOrder.orderId,
+        trackingNumber: updatedOrder.tracking_number,
+        weight: updatedOrder.weight,
+        status: updatedOrder.status,
+        trackingStatus: updatedOrder.tracking_status,
+        shippingPartner: updatedOrder.shipping_partner,
+        tenentId: updatedOrder.tenentId,
+        updatedAt: updatedOrder.updated_at,
+        forceUpdated: true,
+        notification: notificationResult
+      }
+    });
+
+  } catch (error) {
+    console.error('=== FORCE UPDATE TRACKING ERROR ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while force updating tracking information',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -794,7 +997,7 @@ router.post('/bulk-update-tracking', async (req, res) => {
           tracking_number: orderData.trackingNumber,
           weight: parseFloat(orderData.weight),
           tracking_status: 'SHIPPED',
-          status: 'SHIPPED',
+          status: 'COMPLETED',
           updated_at: new Date()
         };
 

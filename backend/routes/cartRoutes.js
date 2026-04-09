@@ -8,7 +8,96 @@ const ProductDetail = require('../models/ProductDetail');
 const SecurityAccessToken = require('../models/SecurityAccessToken');
 const Order = require('../models/Order');
 const Razorpay_info = require('../models/Razorpay_info');
+const Newuser = require('../models/Newuser');
+const FreeShippingThreshold = require('../models/FreeShippingThreshold');
+const ShippingMethod = require('../models/ShippingMethod');
+const crypto = require('crypto');
 
+// Constants
+const FREE_SHIPPING_THRESHOLD = 500;
+const SPECIAL_SHIPPING_PARTNERS = ['Ship Rocket', 'Delhivery'];
+
+// Tenant-specific shipping rules (Legacy Fallback)
+const TENANT_SHIPPING_RULES = {
+  'c28e4bd8-ec43-43f9-a931-e886efaec97d': {
+    freeDeliveryStates: ['TN', 'PY', 'TAMILNADU', 'TAMIL NADU', 'PUDUCHERRY', 'PONDICHERRY'],
+    panIndiaDeliveryCost: 49,
+    panIndiaFreeThreshold: 500,
+    shippingPartnerName: 'ST Courier'
+  }
+};
+
+// Helper function to normalize state names for comparison
+function normalizeStateName(state) {
+  if (!state) return '';
+  return state.toUpperCase().replace(/[^A-Z]/g, '').trim();
+}
+
+// Helper function to parse weight string to number (KG)
+function parseWeightToKg(weightStr) {
+  if (!weightStr) return 0;
+  const str = weightStr.toString().toLowerCase();
+  const match = str.match(/([\d.]+)/);
+  if (!match) return 0;
+
+  let val = parseFloat(match[1]);
+
+  if (str.includes('g') && !str.includes('kg')) {
+    val = val / 1000;
+  }
+
+  return val;
+}
+
+// Helper function to calculate total cart weight
+async function calculateCartWeight(cartItems, tenentId) {
+  console.log("hi for weight");
+  let totalWeight = 0;
+
+  for (const item of cartItems) {
+    try {
+      const product = await ProductDetail.findOne({ tenentId, sku: item.sku });
+      console.log("product for weight",product);
+      if (!product) {
+        const parentProduct = await ProductDetail.findOne({ tenentId, sku: item.sku });
+
+        if (parentProduct && parentProduct.units && parentProduct.units.length > 0) {
+          const unit = parentProduct.units[0];
+
+          if (unit.weight) {
+            totalWeight += parseWeightToKg(unit.weight) * item.quantity;
+          }
+        }
+        continue;
+      }
+
+      // ⬇️ Removed SKU check here
+      if (product.units && product.units.length > 0) {
+        const unit = product.units[0]; // take first unit always
+
+        if (unit.weight) {
+          totalWeight += parseWeightToKg(unit.weight) * item.quantity;
+          console.log("parseWeightToKg",parseWeightToKg);
+        }
+      }
+
+    } catch (e) {
+      console.error(`Error calculating weight for item ${item.sku}:`, e);
+    }
+  }
+
+  console.log(`Calculated Total Cart Weight: ${totalWeight} kg`);
+  return totalWeight;
+}
+
+
+// Helper function to check if state qualifies for free delivery
+function isStateEligibleForFreeDelivery(state, eligibleStates) {
+  const normalizedState = normalizeStateName(state);
+  return eligibleStates.some(eligibleState =>
+    normalizeStateName(eligibleState) === normalizedState
+  );
+}
 
 // Helper function to get senderId from securityAccessToken
 async function getSenderIdFromToken(securityAccessToken, tenentId) {
@@ -23,45 +112,368 @@ async function getSenderIdFromToken(securityAccessToken, tenentId) {
 
   return tokenData.senderId;
 }
+
 // Function to generate a sequence-based order ID
 async function generateOrderId(tenentId) {
-  // Find and update the counter for this tenant, or create it if it doesn't exist
   const result = await mongoose.connection.db.collection('counters').findOneAndUpdate(
     { _id: `order_id_${tenentId}` },
     { $inc: { sequence_value: 1 } },
     { upsert: true, returnDocument: 'after' }
   );
-  
-  // Get the counter value from the appropriate property
-  // The structure of the result might vary based on MongoDB version
+
   const counter = result.value || result;
-  
-  // Return an ID starting from 1000
   return 1000 + (counter.sequence_value || 0);
 }
 
+// Helper function to extract state from shipping address
+function extractStateFromAddress(shippingAddressString) {
+  try {
+    if (!shippingAddressString) return null;
+    const addressData = JSON.parse(shippingAddressString);
+    return addressData.state || null;
+  } catch (error) {
+    console.error('Error parsing shipping address for state:', error);
+    return null;
+  }
+}
+
+// Helper function to extract shipping partner info (ID or Object)
+function extractShippingPartner(shippingAddressString) {
+  try {
+    if (!shippingAddressString) return null;
+    const addressData = JSON.parse(shippingAddressString);
+    return addressData.shippingPartner || null;
+  } catch (error) {
+    console.error('Error parsing shipping address:', error);
+    return null;
+  }
+}
+
+/**
+ * CHECK IF SHIPPING METHOD SUPPORTS A GIVEN STATE
+ * Returns true if the method supports the state, false otherwise
+ */
+function doesShippingMethodSupportState(method, state) {
+  if (!method || !state) return false;
+
+  const normalizedState = normalizeStateName(state);
+
+  // 1. Pan-India Check
+  if (method.isPanIndia) {
+    if (method.excludedRegions && method.excludedRegions.length > 0) {
+      // Check if state is excluded
+      const isExcluded = method.excludedRegions.some(r => normalizeStateName(r) === normalizedState);
+      if (isExcluded) return false;
+    }
+    return true;
+  }
+
+  // 2. Region & Weight Based Check
+  if (method.useRegionWeight) {
+    if (method.regionWeightConfigs && method.regionWeightConfigs.length > 0) {
+      // Check if state is in any config's regions array
+      return method.regionWeightConfigs.some(config =>
+        config.regions && config.regions.some(r => normalizeStateName(r) === normalizedState)
+      );
+    }
+    // If configured to use region weight but no configs exist/match, it doesn't support the state
+    return false;
+  }
+
+  // 3. Simple Weight Based
+  if (method.useWeight) {
+    // Usually applies to all regions if not Pan-India or Region-Specific
+    return true;
+  }
+
+  // 4. Fixed Rate / Region Rates
+  // If a fixed rate is set, it applies generally
+  if (method.fixedRate !== null && method.fixedRate !== undefined) {
+    return true;
+  }
+
+  // If no fixed rate, check if state is in specific region rates
+  if (method.regionRates && method.regionRates.length > 0) {
+    return method.regionRates.some(rate =>
+      rate.regions && rate.regions.some(r => normalizeStateName(r) === normalizedState)
+    );
+  }
+
+  return false;
+}
+
+/**
+ * REVISED SHIPPING COST CALCULATION WITH STATE VALIDATION
+ */
+async function calculateShippingCost(shippingPartnerData, cartTotal, tenentId, state, cartWeight = 0) {
+  try {
+    console.log('=== SHIPPING COST CALCULATION START ===');
+    console.log('Input:', { shippingPartnerData, cartTotal, tenentId, state, cartWeight });
+
+    // ✅ CHECK FREE THRESHOLD FIRST — before any other logic
+    const freeShippingThreshold = await FreeShippingThreshold.findOne({ tenentId });
+    if (freeShippingThreshold) {
+      // Check state-level override first
+      if (state && freeShippingThreshold.stateThresholds && freeShippingThreshold.stateThresholds.length > 0) {
+        const stateRule = freeShippingThreshold.stateThresholds.find(
+          s => normalizeStateName(s.state) === normalizeStateName(state)
+        );
+        if (stateRule && stateRule.isActive && cartTotal >= stateRule.thresholdAmount) {
+          console.log(`=== RESULT: Free shipping via state threshold for ${state} (${cartTotal} >= ${stateRule.thresholdAmount}) ===`);
+          return 0;
+        }
+      }
+      // Fall back to global threshold
+      if (freeShippingThreshold.isActive && cartTotal >= freeShippingThreshold.thresholdAmount) {
+        console.log(`=== RESULT: Free shipping via global threshold (${cartTotal} >= ${freeShippingThreshold.thresholdAmount}) ===`);
+        return 0;
+      }
+    }
+
+    // 1. DYNAMIC SHIPPING METHOD STRATEGY (Database Driven)
+    if (shippingPartnerData) {
+      let methodId = null;
+
+      // Determine ID from input
+      if (typeof shippingPartnerData === 'string') {
+        if (mongoose.Types.ObjectId.isValid(shippingPartnerData)) {
+          methodId = shippingPartnerData;
+        }
+      } else if (typeof shippingPartnerData === 'object' && shippingPartnerData._id) {
+        methodId = shippingPartnerData._id;
+      } else if (typeof shippingPartnerData === 'object' && shippingPartnerData.id) {
+        methodId = shippingPartnerData.id;
+      }
+
+      console.log('Extracted methodId:', methodId);
+
+      if (methodId) {
+        const method = await ShippingMethod.findOne({ _id: methodId, tenentId, isActive: true });
+
+        if (method) {
+          console.log(`Found ShippingMethod: ${method.name} (${method.type})`);
+          console.log('Method details:', JSON.stringify({
+            isPanIndia: method.isPanIndia,
+            useRegionWeight: method.useRegionWeight,
+            useWeight: method.useWeight,
+            defaultPrice: method.defaultPrice,
+            ratePerKg: method.ratePerKg,
+            fixedRate: method.fixedRate
+          }, null, 2));
+
+          // Validate that this method supports the customer's state
+          const supportsState = doesShippingMethodSupportState(method, state);
+          console.log(`Method supports state ${state}:`, supportsState);
+
+          if (!supportsState) {
+            throw new Error(`Shipping method "${method.name}" does not support state: ${state}`);
+          }
+
+          if (method.type === 'FREE_SHIPPING') {
+            const minAmount = method.minAmount || 0;
+            console.log(`FREE_SHIPPING: minAmount=${minAmount}, cartTotal=${cartTotal}`);
+            if (minAmount === 0 || cartTotal >= minAmount) {
+              console.log('=== RESULT: Free Shipping (threshold met) ===');
+              return 0;
+            } else {
+              console.log(`Cart total ${cartTotal} below free shipping threshold ${minAmount}, using fallback charge`);
+              return method.fixedRate || method.defaultPrice || 0;
+            }
+          }
+
+          if (method.type === 'COURIER_PARTNER') {
+            let cost = method.defaultPrice || 0;
+            let additionalCost = 0;
+
+            // A. Pan-India Shipping
+            if (method.isPanIndia) {
+              console.log('Using Pan-India calculation...');
+              console.log(`=== RESULT: Pan-India cost = ${cost} ===`);
+              return cost;
+            }
+
+            // B. Region & Weight Based
+            if (method.useRegionWeight && method.regionWeightConfigs && method.regionWeightConfigs.length > 0) {
+              console.log('Trying Region & Weight Based calculation...');
+              const normalizedTargetRegion = normalizeStateName(state);
+              console.log('Normalized target region:', normalizedTargetRegion);
+
+              const config = method.regionWeightConfigs.find(c => {
+                return c.regions && c.regions.some(r => normalizeStateName(r) === normalizedTargetRegion);
+              });
+
+              if (config) {
+                console.log('Found matching region config regions:', config.regions);
+
+                const sortedRanges = [...config.weightRanges].sort((a, b) => a.minWeight - b.minWeight);
+
+                const range = sortedRanges.find(r => {
+                  console.log(`Checking weight range: ${r.minWeight} <= ${cartWeight} <= ${r.maxWeight}`);
+                  return cartWeight >= r.minWeight && cartWeight <= r.maxWeight;
+                });
+
+                if (range) {
+                  additionalCost = range.price;
+                  console.log(`=== RESULT: Region & Weight price = ${additionalCost} (range: ${range.minWeight}-${range.maxWeight}kg) ===`);
+                } else {
+                  const maxRange = sortedRanges[sortedRanges.length - 1];
+                  if (cartWeight > maxRange.maxWeight) {
+                    console.log(`Cart weight ${cartWeight}kg exceeds max range ${maxRange.maxWeight}kg, using highest range price`);
+                    additionalCost = maxRange.price;
+                  } else {
+                    const minRange = sortedRanges[0];
+                    console.log(`Cart weight ${cartWeight}kg below all ranges, using lowest range price`);
+                    additionalCost = minRange.price;
+                  }
+                }
+
+                const totalCost = cost + additionalCost;
+                console.log(`=== RESULT: Total Cost (Base: ${cost} + Weight: ${additionalCost}) = ${totalCost} ===`);
+                return totalCost;
+              } else {
+                console.log('Region not found in weight config, checking other strategies...');
+              }
+            }
+
+            // C. Simple Weight Based (Rate per KG)
+            if (method.useWeight && method.ratePerKg) {
+              console.log('Using Simple Weight Based calculation...');
+              const chargeableWeight = Math.max(0.5, cartWeight);
+              additionalCost = Math.ceil(chargeableWeight * method.ratePerKg);
+              const totalCost = cost + additionalCost;
+              console.log(`=== RESULT: Weight-based cost (Base: ${cost} + Weight: ${additionalCost}) = ${totalCost} ===`);
+              return totalCost;
+            }
+
+            // D. Region Flat Rate Exceptions
+            if (method.regionRates && method.regionRates.length > 0) {
+              console.log('Trying Region Flat Rate Exceptions calculation...');
+              const normalizedTargetRegion = normalizeStateName(state);
+
+              const regionRate = method.regionRates.find(r => {
+                return r.regions && r.regions.some(reg => normalizeStateName(reg) === normalizedTargetRegion);
+              });
+
+              if (regionRate) {
+                additionalCost = regionRate.price;
+                const totalCost = cost + additionalCost;
+                console.log(`=== RESULT: Region flat rate exception (Base: ${cost} + Region: ${additionalCost}) = ${totalCost} ===`);
+                return totalCost;
+              }
+            }
+
+            // E. Fixed Rate (Fallback)
+            if (method.fixedRate !== null && method.fixedRate !== undefined) {
+              additionalCost = method.fixedRate;
+              const totalCost = cost + additionalCost;
+              console.log(`=== RESULT: Fixed rate (Base: ${cost} + Fixed: ${additionalCost}) = ${totalCost} ===`);
+              return totalCost;
+            }
+
+            // F. Default Price Only
+            console.log(`=== RESULT: Default Base Price Only = ${cost} ===`);
+            return cost;
+          }
+        } else {
+          console.log('No matching shipping method found in database');
+        }
+      }
+    }
+
+    console.log('Falling back to legacy logic...');
+
+    // 2. LEGACY LOGIC (Fallback)
+    const tenantRules = TENANT_SHIPPING_RULES[tenentId];
+    if (tenantRules) {
+      if (state && isStateEligibleForFreeDelivery(state, tenantRules.freeDeliveryStates)) {
+        console.log('=== RESULT: Free delivery via tenant rules (eligible state) ===');
+        return 0;
+      }
+      if (cartTotal >= tenantRules.panIndiaFreeThreshold) {
+        console.log('=== RESULT: Free delivery via tenant rules (threshold met) ===');
+        return 0;
+      }
+      console.log(`=== RESULT: Tenant pan-India cost = ${tenantRules.panIndiaDeliveryCost} ===`);
+      return tenantRules.panIndiaDeliveryCost;
+    }
+
+    // 3. Generic Fallback
+    if (shippingPartnerData) {
+      const name = typeof shippingPartnerData === 'object' ? shippingPartnerData.name : shippingPartnerData;
+      const cost = typeof shippingPartnerData === 'object' ? shippingPartnerData.cost : 0;
+
+      if (SPECIAL_SHIPPING_PARTNERS.includes(name)) {
+        console.log(`=== RESULT: Special partner cost = ${cost || 0} ===`);
+        return cost > 0 ? cost : 0;
+      }
+    }
+
+    if (cartTotal >= FREE_SHIPPING_THRESHOLD) {
+      console.log('=== RESULT: Free shipping (generic threshold) ===');
+      return 0;
+    }
+
+    const finalCost = (typeof shippingPartnerData === 'object' && shippingPartnerData.cost) ? shippingPartnerData.cost : 0;
+    console.log(`=== RESULT: Generic fallback cost = ${finalCost} ===`);
+    return finalCost;
+
+  } catch (error) {
+    console.error('=== ERROR in calculateShippingCost ===');
+    console.error('Error calculating shipping cost:', error);
+    throw error;
+  }
+}
+
+// ✅ NEW ENDPOINT: Get available shipping methods for a specific state
+router.get('/shipping-methods/:tenentId', async (req, res) => {
+  try {
+    const { tenentId } = req.params;
+    const { state } = req.query;
+
+    if (!state) {
+      return res.status(400).json({ message: "State is required" });
+    }
+
+    // Find all active shipping methods for this tenant
+    const methods = await ShippingMethod.find({ tenentId, isActive: true });
+
+    // Filter only methods that support the customer's state
+    const availableMethods = methods.filter(method =>
+      doesShippingMethodSupportState(method, state)
+    );
+
+    console.log(`Found ${availableMethods.length} shipping methods for state: ${state}`);
+
+    res.json(availableMethods);
+
+  } catch (error) {
+    console.error('Error fetching shipping methods:', error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
 
 // Get cart contents using securityAccessToken
 router.get('/:securityAccessToken/:tenentId', async (req, res) => {
   try {
     const { securityAccessToken, tenentId } = req.params;
-    console.log("securityAccessToken for cart",securityAccessToken);
-    // Get senderId from securityAccessToken
+    console.log("securityAccessToken for cart", securityAccessToken);
+
     const senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
-    
-    // Find the user's cart or create an empty one
+
     let cart = await Cart.findOne({ senderId, tenentId });
-    console.log("cart",cart);
+    console.log("cart", cart);
+
     if (!cart) {
       return res.status(200).json({ items: [], total: 0 });
     }
-    
-    // Calculate the total price
+
     const total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    res.status(200).json({ 
+    const totalWeight = await calculateCartWeight(cart.items, tenentId);
+    console.log("totalWeight1",totalWeight);
+    res.status(200).json({
       items: cart.items,
-      total
+      total,
+      totalWeight
     });
   } catch (error) {
     console.error('Error fetching cart:', error);
@@ -73,7 +485,6 @@ router.get('/:securityAccessToken/:tenentId', async (req, res) => {
 });
 
 // Add product to cart by SKU using securityAccessToken
-
 router.post('/add', async (req, res) => {
   console.log('Cart add request body:', req.body);
   try {
@@ -83,40 +494,30 @@ router.post('/add', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Get senderId from securityAccessToken
     const senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
-
-    // Find product details by SKU
     const productDetail = await ProductDetail.findOne({ tenentId, sku });
 
     if (!productDetail) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Ensure the quantity requested is not more than the available stock
     const availableStock = productDetail.quantityInStock || 0;
     if (quantity > availableStock) {
       return res.status(400).json({ message: `Not enough stock available. Only ${availableStock} items in stock.` });
     }
 
-    // Get the price (first unit price)
     const price = parseFloat(productDetail.units[0].price);
-
-    // Find existing cart or create a new one
     let cart = await Cart.findOne({ senderId, tenentId });
 
     if (!cart) {
       cart = new Cart({ senderId, tenentId, items: [] });
     }
 
-    // Check if product is already in the cart
     const existingItemIndex = cart.items.findIndex(item => item.sku === sku);
 
     if (existingItemIndex !== -1) {
-      // Increment the quantity in the cart
       cart.items[existingItemIndex].quantity += quantity;
     } else {
-      // Add new item to the cart
       cart.items.push({
         sku,
         productName: productDetail.productName,
@@ -126,10 +527,7 @@ router.post('/add', async (req, res) => {
       });
     }
 
-    // Save the updated cart
     await cart.save();
-
-    // Calculate the total price
     const total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     res.status(200).json({
@@ -152,62 +550,51 @@ router.post('/add', async (req, res) => {
 router.put('/update', async (req, res) => {
   try {
     const { securityAccessToken, tenentId, sku, quantity } = req.body;
-    
+
     if (!securityAccessToken || !tenentId || !sku || quantity === undefined) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    
-    // Get senderId from securityAccessToken
+
     const senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
-    
-    // Ensure quantity is a non-negative integer
     const newQuantity = parseInt(quantity);
+
     if (isNaN(newQuantity) || newQuantity < 0) {
       return res.status(400).json({ message: 'Quantity must be a non-negative number' });
     }
-    
-    // Find user's cart
+
     let cart = await Cart.findOne({ senderId, tenentId });
-    
+
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
-    
-    // Find product details by SKU
+
     const productDetail = await ProductDetail.findOne({ tenentId, sku });
-    
+
     if (!productDetail) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     const availableStock = productDetail.quantityInStock || 0;
-    
-    // Find the existing item in cart
     const existingItemIndex = cart.items.findIndex(item => item.sku === sku);
-    
+
     if (existingItemIndex === -1) {
       return res.status(404).json({ message: 'Item not found in cart' });
     }
-    
+
     const currentQuantity = cart.items[existingItemIndex].quantity;
-    
-    // Check if we're trying to increase quantity beyond available stock
+
     if (newQuantity > currentQuantity && newQuantity > availableStock) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: `Not enough stock available. Only ${availableStock} items in stock.`,
         insufficientStock: true
       });
     }
-    
-    // Update the cart item quantity
+
     cart.items[existingItemIndex].quantity = newQuantity;
-    
-    // Save the updated cart
     await cart.save();
-    
-    // Calculate the total price
+
     const total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
+
     res.status(200).json({
       message: 'Cart updated successfully',
       cart: {
@@ -228,30 +615,24 @@ router.put('/update', async (req, res) => {
 router.delete('/remove', async (req, res) => {
   try {
     const { securityAccessToken, tenentId, sku } = req.body;
-    
+
     if (!securityAccessToken || !tenentId || !sku) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    
-    // Get senderId from securityAccessToken
+
     const senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
-    
-    // Find user's cart
     let cart = await Cart.findOne({ senderId, tenentId });
-    
+
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
-    
-    // Remove item
+
     cart.items = cart.items.filter(item => item.sku !== sku);
-    
     await cart.save();
-    
-    // Calculate the total price
+
     const total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: 'Item removed from cart',
       cart: {
         items: cart.items,
@@ -271,26 +652,24 @@ router.delete('/remove', async (req, res) => {
 router.delete('/clear', async (req, res) => {
   try {
     const { securityAccessToken, tenentId } = req.body;
-    
+
     if (!securityAccessToken || !tenentId) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    
-    // Get senderId from securityAccessToken
+
     const senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
-    
-    // Find and update cart (set items to empty array)
+
     const result = await Cart.findOneAndUpdate(
       { senderId, tenentId },
       { $set: { items: [] } },
       { new: true }
     );
-    
+
     if (!result) {
       return res.status(404).json({ message: 'Cart not found' });
     }
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: 'Cart cleared successfully',
       cart: {
         items: [],
@@ -306,20 +685,20 @@ router.delete('/clear', async (req, res) => {
   }
 });
 
-// Add endpoint to get product details by SKU using securityAccessToken (useful for frontend)
+// Get product details by SKU
 router.get('/product/:tenentId/:sku', async (req, res) => {
   try {
     const { tenentId, sku } = req.params;
-    
-    const productDetail = await ProductDetail.findOne({ 
+
+    const productDetail = await ProductDetail.findOne({
       tenentId,
-      sku 
+      sku
     });
-    
+
     if (!productDetail) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
+
     res.status(200).json(productDetail);
   } catch (error) {
     console.error('Error fetching product details:', error);
@@ -332,40 +711,36 @@ router.post('/validate-stock', async (req, res) => {
   try {
     console.log('Starting validate-stock process with body:', req.body);
     const { securityAccessToken, tenentId } = req.body;
-    
+
     if (!securityAccessToken || !tenentId) {
       console.log('Missing required fields in validate-stock request');
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    
-    // Get senderId from securityAccessToken
+
     console.log('Getting senderId from token for tenantId:', tenentId);
     const senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
     console.log('Retrieved senderId:', senderId);
-    
-    // Find user's cart
+
     console.log('Finding cart for senderId:', senderId);
     const cart = await Cart.findOne({ senderId, tenentId });
     console.log('Cart found:', cart ? `Cart with ${cart.items.length} items` : 'No cart found');
-    
+
     if (!cart || !cart.items || cart.items.length === 0) {
       console.log('Cart is empty or not found');
-      return res.status(200).json({ 
-        valid: true, 
-        message: 'Cart is empty', 
+      return res.status(200).json({
+        valid: true,
+        message: 'Cart is empty',
         insufficientItems: []
       });
     }
-    
-    // Check stock for each item in cart
+
     console.log(`Validating stock for ${cart.items.length} items in cart`);
     const insufficientItems = [];
-    
+
     for (const item of cart.items) {
       console.log(`Checking stock for SKU: ${item.sku}, Quantity: ${item.quantity}`);
-      // Get current product details to check latest stock
       const productDetail = await ProductDetail.findOne({ tenentId, sku: item.sku });
-      
+
       if (!productDetail) {
         console.log(`Product not found for SKU: ${item.sku}`);
         insufficientItems.push({
@@ -377,10 +752,10 @@ router.post('/validate-stock', async (req, res) => {
         });
         continue;
       }
-      
+
       const availableStock = productDetail.quantityInStock || 0;
       console.log(`Available stock for ${item.sku}: ${availableStock}, Requested: ${item.quantity}`);
-      
+
       if (item.quantity > availableStock) {
         console.log(`Insufficient stock for SKU: ${item.sku}`);
         insufficientItems.push({
@@ -392,19 +767,19 @@ router.post('/validate-stock', async (req, res) => {
         });
       }
     }
-    
+
     const isValid = insufficientItems.length === 0;
-    console.log('Stock validation result:', { 
-      valid: isValid, 
-      insufficientItemsCount: insufficientItems.length 
+    console.log('Stock validation result:', {
+      valid: isValid,
+      insufficientItemsCount: insufficientItems.length
     });
-    
+
     const result = {
       valid: isValid,
       message: isValid ? 'All items in cart have sufficient stock' : 'Some items have insufficient stock',
       insufficientItems
     };
-    
+
     console.log('Validate-stock response:', result);
     res.status(200).json(result);
   } catch (error) {
@@ -419,7 +794,7 @@ router.post('/validate-stock', async (req, res) => {
 async function createRazorpayPaymentLink(accessToken, { amount, customerPhone, description, billNo }) {
   const timestamp = Date.now();
   const reference_id = `PAY-${timestamp}-${Math.random().toString(36).substring(7)}`;
-  
+
   const payload = {
     amount: Math.round(amount * 100),
     currency: 'INR',
@@ -432,9 +807,9 @@ async function createRazorpayPaymentLink(accessToken, { amount, customerPhone, d
     },
     reminder_enable: true
   };
-  
+
   console.log(payload, "link payload");
-  
+
   const response = await fetch('https://api.razorpay.com/v1/payment_links', {
     method: 'POST',
     headers: {
@@ -443,88 +818,45 @@ async function createRazorpayPaymentLink(accessToken, { amount, customerPhone, d
     },
     body: JSON.stringify(payload)
   });
-  
+
   if (!response.ok) {
     const errorData = await response.text();
     throw new Error(`Failed to create payment link: ${errorData}`);
   }
-  
+
   return await response.json();
 }
-async function createOrder(tenentId, securityToken, payment, razorpayOrderId) {
-  // Implement your order creation logic
-  try {
-    // 1. Get cart items for the user
-    const cart = await getCart(tenentId, securityToken);
-    
-    // 2. Get shipping address
-    const shippingAddress = await getShippingAddress(tenentId, securityToken);
-    
-    // 3. Create order in your database
-    const order = {
-      tenentId: tenentId,
-      items: cart.items,
-      total: cart.total,
-      shipping: {
-        address: shippingAddress,
-        cost: shippingAddress.shippingPartner ? shippingAddress.shippingPartner.cost : 0
-      },
-      payment: {
-        id: payment.id,
-        method: 'razorpay',
-        amount: payment.amount / 100,
-        status: payment.status,
-        razorpayOrderId: razorpayOrderId
-      },
-      status: 'processing',
-      createdAt: new Date()
-    };
-    
-    // Save order to database (implementation depends on your database)
-    const savedOrder = await saveOrderToDatabase(order);
-    
-    return savedOrder._id || savedOrder.id; // Return the order ID
-  } catch (error) {
-    console.error('Error creating order:', error);
-    throw error;
-  }
-}
+
 router.post('/create-order', async (req, res) => {
   try {
     const { securityAccessToken, tenentId, amount, currency, receipt, notes } = req.body;
     console.log("notes", notes);
     console.log("amount", amount);
-    
-    // Validate request
+
     if (!securityAccessToken || !tenentId || !amount) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
-    
-    // Get senderId from securityAccessToken
+
     let senderId;
     try {
       senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
     } catch (error) {
       return res.status(401).json({ error: 'Invalid security token' });
     }
-    
-    // Validate stock before proceeding
+
     console.log('Validating stock before creating order');
-    
-    // Find user's cart
+
     const cart = await Cart.findOne({ senderId, tenentId });
-    
+
     if (!cart || !cart.items || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
-    
-    // Check stock for each item in cart
+
     const insufficientItems = [];
-    
+
     for (const item of cart.items) {
-      // Get current product details to check latest stock
       const productDetail = await ProductDetail.findOne({ tenentId, sku: item.sku });
-      
+
       if (!productDetail) {
         insufficientItems.push({
           sku: item.sku,
@@ -535,9 +867,9 @@ router.post('/create-order', async (req, res) => {
         });
         continue;
       }
-      
+
       const availableStock = productDetail.quantityInStock || 0;
-      
+
       if (item.quantity > availableStock) {
         insufficientItems.push({
           sku: item.sku,
@@ -548,65 +880,106 @@ router.post('/create-order', async (req, res) => {
         });
       }
     }
-    
-    // If there are items with insufficient stock, return error
+
     if (insufficientItems.length > 0) {
       return res.status(400).json({
         error: 'Insufficient stock',
         insufficientItems: insufficientItems
       });
     }
-    
-    // Calculate total price from cart including shipping
+
     const itemsTotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    // Add shipping amount
-    const shippingAmount = notes.shipping_amount || 0; 
-    console.log("shippingAmount", shippingAmount);
-    const total = itemsTotal + Number(shippingAmount);
-    
-    // Verify the amount matches the cart total
+    const cartWeight = await calculateCartWeight(cart.items, tenentId);
+     console.log("cartWeight",cartWeight);
+    // Extract shipping partner and state from notes
+    const shippingPartner = extractShippingPartner(notes.shipping_address);
+    const state = extractStateFromAddress(notes.shipping_address);
+
+    // ✅ VALIDATE: Check if selected shipping method supports the state
+    if (shippingPartner && state) {
+      let methodId = null;
+      if (typeof shippingPartner === 'string' && mongoose.Types.ObjectId.isValid(shippingPartner)) {
+        methodId = shippingPartner;
+      } else if (typeof shippingPartner === 'object' && shippingPartner._id) {
+        methodId = shippingPartner._id;
+      }
+
+      if (methodId) {
+        const method = await ShippingMethod.findOne({ _id: methodId, tenentId, isActive: true });
+        if (method && !doesShippingMethodSupportState(method, state)) {
+          return res.status(400).json({
+            error: 'Invalid shipping method',
+            message: `Selected shipping method "${method.name}" does not support state: ${state}`
+          });
+        }
+      }
+    }
+
+    // Calculate shipping cost (will throw error if method doesn't support state)
+    let calculatedShippingCost;
+    try {
+      calculatedShippingCost = await calculateShippingCost(shippingPartner, itemsTotal, tenentId, state, cartWeight);
+    } catch (shippingError) {
+      return res.status(400).json({
+        error: 'Shipping calculation failed',
+        message: shippingError.message
+      });
+    }
+
+    const total = itemsTotal + calculatedShippingCost;
+
+    console.log("itemsTotal:", itemsTotal);
+    console.log("cartWeight:", cartWeight);
+    console.log("shippingPartner:", shippingPartner);
+    console.log("state:", state);
+    console.log("calculatedShippingCost:", calculatedShippingCost);
+    console.log("frontend shipping_amount:", notes.shipping_amount);
+
+    const frontendShippingAmount = Number(notes.shipping_amount || 0);
+    if (Math.abs(frontendShippingAmount - calculatedShippingCost) > 0.01) {
+      console.warn(`Shipping amount mismatch! Frontend: ${frontendShippingAmount}, Backend: ${calculatedShippingCost}`);
+    }
+
     const totalInPaisa = Math.round(total * 100);
     if (amount !== totalInPaisa) {
       console.warn(`Amount mismatch: Request amount ${amount}, calculated total ${totalInPaisa}`);
     }
-    
-    // Get the stored Razorpay OAuth token for this tenant
+
     const razorpayInfo = await Razorpay_info.findOne({ tenentId });
-    
+
     if (!razorpayInfo || !razorpayInfo.razorpayAccessToken) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Razorpay integration not found',
         message: 'Please connect your Razorpay account first'
       });
     }
-    
-    // Check if token has expired
+
     if (razorpayInfo.razorpayTokenExpiresAt && new Date() > new Date(razorpayInfo.razorpayTokenExpiresAt)) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Razorpay token expired',
         message: 'Please reconnect your Razorpay account'
       });
     }
-    
-    // Create order options for Razorpay
+
     const options = {
-      amount: amount,
+      amount: totalInPaisa,
       currency: currency || 'INR',
       receipt: receipt || `receipt_${Date.now()}`,
-      notes: notes || {}
+      notes: {
+        ...notes,
+        backend_calculated_shipping: calculatedShippingCost,
+        backend_calculated_total: total
+      }
     };
-    
+
     try {
-      // Make API call to Razorpay using OAuth token
       const orderResponse = await axios.post('https://api.razorpay.com/v1/orders', options, {
         headers: {
           'Authorization': `Bearer ${razorpayInfo.razorpayAccessToken}`,
           'Content-Type': 'application/json'
         }
       });
-      
-      // Try to get merchant ID, but don't fail if it doesn't work
+
       let key_id = null;
       try {
         const merchantResponse = await axios.get('https://api.razorpay.com/v1/merchants/me', {
@@ -616,38 +989,43 @@ router.post('/create-order', async (req, res) => {
           }
         });
         key_id = merchantResponse.data.id;
-        console.log("merchantResponse",merchantResponse);
+        console.log("merchantResponse", merchantResponse);
       } catch (merchantError) {
         console.warn('Could not fetch merchant details, using key_id from database instead');
-        key_id = razorpayInfo.razorpayKeyId; // Assuming you store this in your Razorpay_info model
+        key_id = razorpayInfo.razorpayKeyId;
       }
-      
-      // Store order details in database
+
       const newOrder = new Order({
         tenentId,
         senderId,
         razorpayOrderId: orderResponse.data.id,
         cartItems: cart.items,
-        amount: orderResponse.data.amount,
+        amount: total,
         currency: orderResponse.data.currency,
-        status: 'created',
-        notes: notes,
+        status: 'CREATED',
+        notes: {
+          ...notes,
+          backend_calculated_shipping: calculatedShippingCost,
+          backend_calculated_total: total
+        },
+        shippingCost: calculatedShippingCost,
         createdAt: new Date(orderResponse.data.created_at * 1000)
       });
-      
+
       await newOrder.save();
-      
-      // Return order details and key_id to client
+
       res.status(200).json({
         id: orderResponse.data.id,
-        amount: orderResponse.data.amount,
+        amount: totalInPaisa,
         currency: orderResponse.data.currency,
-        key_id: key_id || razorpayInfo.razorpayKeyId, // Fallback to stored key if needed
-        created_at: orderResponse.data.created_at
+        key_id: key_id || razorpayInfo.razorpayKeyId,
+        created_at: orderResponse.data.created_at,
+        backend_calculated_total: total,
+        backend_calculated_shipping: calculatedShippingCost
       });
     } catch (apiError) {
       console.error('Razorpay API error:', apiError.response?.data || apiError.message);
-      
+
       return res.status(apiError.response?.status || 500).json({
         error: 'Razorpay API error',
         details: apiError.response?.data || { message: apiError.message }
@@ -655,116 +1033,110 @@ router.post('/create-order', async (req, res) => {
     }
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to create order',
       message: error.message
     });
   }
 });
 
-// Verify payment after it's completed
 router.post('/verify-payment', async (req, res) => {
   try {
-    const { 
-      tenentId, 
-      razorpay_payment_id, 
-      razorpay_order_id, 
+    const {
+      tenentId,
+      razorpay_payment_id,
+      razorpay_order_id,
       razorpay_signature,
-      securityAccessToken 
+      securityAccessToken
     } = req.body;
-    
+
     if (!tenentId || !razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !securityAccessToken) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
-    
-    // Get senderId from securityAccessToken
+
     let senderId;
     try {
       senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
     } catch (error) {
       return res.status(401).json({ error: 'Invalid security token' });
     }
-    
-    // Get the stored Razorpay information for this tenant
+
     const razorpayInfo = await Razorpay_info.findOne({ tenentId });
-    
+
     if (!razorpayInfo || !razorpayInfo.razorpayAccessToken || !razorpayInfo.razorpayWebhookSecret) {
       return res.status(404).json({ error: 'Razorpay integration not found or incomplete' });
     }
-    
-    // Verify signature
+
     const generatedSignature = crypto
       .createHmac('sha256', razorpayInfo.razorpayWebhookSecret)
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
-    
+
     if (generatedSignature !== razorpay_signature) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         error: 'Payment verification failed: Invalid signature'
       });
     }
-    
-    // Get payment details from Razorpay
+
     const paymentResponse = await axios.get(`https://api.razorpay.com/v1/payments/${razorpay_payment_id}`, {
       headers: {
         'Authorization': `Bearer ${razorpayInfo.razorpayAccessToken}`
       }
     });
-    
+
     const payment = paymentResponse.data;
-    
-    // Verify that the payment matches the order
+
     if (payment.order_id !== razorpay_order_id) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         error: 'Payment verification failed: Order ID mismatch'
       });
     }
-    
-    // Begin database transaction to update order, reduce stock, and clear cart
+
     const session = await mongoose.startSession();
     session.startTransaction();
-    
-    try {
-      // 1. Find the order by Razorpay order ID
-      const order = await Order.findOne({ razorpayOrderId: razorpay_order_id, tenentId });
-      
-      if (!order) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(404).json({ error: 'Order not found' });
-      }
-      
-      // 2. Update order status
-      order.razorpayPaymentId = razorpay_payment_id;
-      order.status = payment.status === 'captured' ? 'paid' : payment.status;
-      order.paymentDetails = payment;
-      order.updatedAt = new Date();
-      await order.save({ session });
-      
-      // 3. Reduce product stock for each item
-      for (const item of order.cartItems) {
-        await ProductDetail.updateOne(
-          { tenentId, sku: item.sku },
-          { $inc: { quantityInStock: -item.quantity } },
-          { session }
-        );
-      }
-      
-      // 4. Clear user's cart after successful payment
-      await Cart.updateOne(
-        { senderId, tenentId },
-        { $set: { items: [] } },
+
+     try {
+    const { orderId, payment, razorpay_payment_id } = req.body;
+
+    // Find the order
+    const order = await Order.findById(orderId).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Order not found' });
+    }
+console.log("Updating product stock for:", { tenentId: order.tenentId, sku: item.sku, quantity: item.quantity });
+
+    // Update product stock
+    for (const item of order.cartItems) {
+      const result = await ProductDetail.updateOne(
+        { tenentId: order.tenentId, sku: item.sku },
+        { $inc: { quantityInStock: -item.quantity } },
         { session }
       );
-      
-      // Commit the transaction
-      await session.commitTransaction();
-      session.endSession();
-      
-      // Return success response
+console.log("Updating product stock for:", { tenentId: order.tenentId, sku: item.sku, quantity: item.quantity });
+
+      if (result.matchedCount === 0) {
+        throw new Error(`Product with SKU ${item.sku} not found`);
+      }
+    }
+
+    // Update order with payment info
+    order.razorpayPaymentId = razorpay_payment_id;
+    order.status = payment.status === 'captured' ? 'paid' : payment.status;
+    order.paymentDetails = payment;
+    order.updatedAt = new Date();
+
+    await order.save({ session });
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+
       res.status(200).json({
         success: true,
         message: 'Payment verified successfully',
@@ -776,23 +1148,20 @@ router.post('/verify-payment', async (req, res) => {
         }
       });
     } catch (transactionError) {
-      // Abort transaction on error
       await session.abortTransaction();
       session.endSession();
       throw transactionError;
     }
   } catch (error) {
     console.error('Error verifying payment:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to verify payment', 
+      error: 'Failed to verify payment',
       message: error.message
     });
   }
 });
-// Add this to your razorpay.js routes file
 
-// Create payment link
 router.post('/create-payment-link', async (req, res) => {
   try {
     const { securityAccessToken, tenentId, amount, description, notes } = req.body;
@@ -800,37 +1169,32 @@ router.post('/create-payment-link', async (req, res) => {
     console.log("amount", amount);
     console.log("securityAccessToken", securityAccessToken);
     console.log("tenentId", tenentId);
-    // Validate request
+
     if (!securityAccessToken || !tenentId || !amount) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
-    
-    // Get senderId from securityAccessToken
+
     let senderId;
     try {
       senderId = await getSenderIdFromToken(securityAccessToken, tenentId);
-      console.log("senderId",senderId);
+      console.log("senderId", senderId);
     } catch (error) {
       return res.status(401).json({ error: 'Invalid security token' });
     }
-    
-    // Validate stock before proceeding
+
     console.log('Validating stock before creating payment link');
-    
-    // Find user's cart
+
     const cart = await Cart.findOne({ senderId, tenentId });
-    
+
     if (!cart || !cart.items || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
-    
-    // Check stock for each item in cart
+
     const insufficientItems = [];
-    
+
     for (const item of cart.items) {
-      // Get current product details to check latest stock
       const productDetail = await ProductDetail.findOne({ tenentId, sku: item.sku });
-      
+
       if (!productDetail) {
         insufficientItems.push({
           sku: item.sku,
@@ -841,9 +1205,9 @@ router.post('/create-payment-link', async (req, res) => {
         });
         continue;
       }
-      
+
       const availableStock = productDetail.quantityInStock || 0;
-      
+
       if (item.quantity > availableStock) {
         insufficientItems.push({
           sku: item.sku,
@@ -854,80 +1218,117 @@ router.post('/create-payment-link', async (req, res) => {
         });
       }
     }
-    
-    // If there are items with insufficient stock, return error
+
     if (insufficientItems.length > 0) {
       return res.status(400).json({
         error: 'Insufficient stock',
         insufficientItems: insufficientItems
       });
     }
-    
-    // Calculate total price from cart including shipping
+
     const itemsTotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    // Add shipping amount
-    const shippingAmount = notes.shipping_amount || 0; 
-    console.log("shippingAmount", shippingAmount);
-    const total = itemsTotal + Number(shippingAmount);
-    
-    // Create a bill number (can be order number or any unique identifier)
+    const cartWeight = await calculateCartWeight(cart.items, tenentId);
+
+    // Extract shipping partner and state from notes
+    const shippingPartner = extractShippingPartner(notes.shipping_address);
+    const state = extractStateFromAddress(notes.shipping_address);
+
+    // ✅ VALIDATE: Check if selected shipping method supports the state
+    if (shippingPartner && state) {
+      let methodId = null;
+      if (typeof shippingPartner === 'string' && mongoose.Types.ObjectId.isValid(shippingPartner)) {
+        methodId = shippingPartner;
+      } else if (typeof shippingPartner === 'object' && shippingPartner._id) {
+        methodId = shippingPartner._id;
+      }
+
+      if (methodId) {
+        const method = await ShippingMethod.findOne({ _id: methodId, tenentId, isActive: true });
+        if (method && !doesShippingMethodSupportState(method, state)) {
+          return res.status(400).json({
+            error: 'Invalid shipping method',
+            message: `Selected shipping method "${method.name}" does not support state: ${state}`
+          });
+        }
+      }
+    }
+
+    // Calculate shipping cost (will throw error if method doesn't support state)
+    let calculatedShippingCost;
+    try {
+      calculatedShippingCost = await calculateShippingCost(shippingPartner, itemsTotal, tenentId, state, cartWeight);
+    } catch (shippingError) {
+      return res.status(400).json({
+        error: 'Shipping calculation failed',
+        message: shippingError.message
+      });
+    }
+
+    const total = itemsTotal + calculatedShippingCost;
+
+    console.log("itemsTotal:", itemsTotal);
+    console.log("cartWeight:", cartWeight);
+    console.log("shippingPartner:", shippingPartner);
+    console.log("state:", state);
+    console.log("calculatedShippingCost:", calculatedShippingCost);
+    console.log("frontend shipping_amount:", notes.shipping_amount);
+
+    const frontendShippingAmount = Number(notes.shipping_amount || 0);
+    if (Math.abs(frontendShippingAmount - calculatedShippingCost) > 0.01) {
+      console.warn(`Shipping amount mismatch! Frontend: ${frontendShippingAmount}, Backend: ${calculatedShippingCost}`);
+    }
+
     const billNo = Date.now();
-    
-    // Get the stored Razorpay OAuth info for this tenant
+
     const razorpayInfo = await Razorpay_info.findOne({ tenentId });
-    
+
     if (!razorpayInfo) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Razorpay integration not found',
         message: 'Please connect your Razorpay account first'
       });
     }
-    console.log("razorpayInfo",razorpayInfo);
-    // Get valid access token using the functions from razorpayToken.ts
-    let razorpayaccessToken=razorpayInfo.razorpayAccessToken;
+    console.log("razorpayInfo", razorpayInfo);
+
+    let razorpayaccessToken = razorpayInfo.razorpayAccessToken;
+
     try {
-      // If using the organisationId format from the original code
-      //accessToken = await getValidAccessToken(tenentId);
-    } catch (tokenError) {
-      return res.status(401).json({ 
-        error: 'Failed to get valid Razorpay token',
-        message: 'Please reconnect your Razorpay account'
-      });
-    }
-    
-    try {
-      // Create payment link using the imported function
       const customerPhone = notes.customer_phone || '';
       const linkDescription = description || `Order from Cart - ${new Date().toISOString().split('T')[0]}`;
-      
+
       const paymentLinkResponse = await createRazorpayPaymentLink(razorpayaccessToken, {
         amount: total,
         customerPhone,
         description: linkDescription,
         billNo
       });
+
       const orderId = await generateOrderId(tenentId);
-      // Store order details in database
+
       let shippingPartnerData = null;
       if (notes.shipping_address) {
         const addressData = JSON.parse(notes.shipping_address);
         if (addressData.shippingPartner) {
-          // Store as a string if it's a complex object
-          shippingPartnerData = typeof addressData.shippingPartner === 'object' 
+          shippingPartnerData = typeof addressData.shippingPartner === 'object'
             ? addressData.shippingPartner.name || JSON.stringify(addressData.shippingPartner)
             : addressData.shippingPartner;
         }
       }
 
+      const userid = await Newuser.findOne({senderId: senderId, tenentId: tenentId}).sort({ createdAt: -1 }).limit(1);
+      const name = userid ? userid.name : '';
+      const username = userid ? userid.username : '';
+
       const newOrder = new Order({
         tenentId,
         senderId,
-        orderId: orderId, // Keep using orderId, schema now matches this
+        orderId: orderId,
         bill_no: billNo,
         razorpayPaymentLinkId: paymentLinkResponse.id,
         razorpayPaymentLinkUrl: paymentLinkResponse.short_url,
         customer_name: notes.shipping_address ? JSON.parse(notes.shipping_address).name : "",
+        name: name,
+        username: username,
         products: cart.items.map(item => ({
           sku: item.sku,
           product_name: item.productName,
@@ -936,10 +1337,10 @@ router.post('/create-payment-link', async (req, res) => {
         })),
         amount: total,
         currency: 'INR',
-        status: 'created', // Now this matches the schema's enum values
+        status: 'CREATED',
         timestamp: new Date().getTime().toString(),
-        shipping_cost: Number(notes.shipping_amount || 0),
-        total_amount: Number(total),
+        shipping_cost: calculatedShippingCost,
+        total_amount: total,
         paymentStatus: "",
         paymentMethod: "",
         print_status: "PENDING",
@@ -955,24 +1356,25 @@ router.post('/create-payment-link', async (req, res) => {
         phone_number: notes.customer_phone || senderId,
         state: notes.shipping_address ? JSON.parse(notes.shipping_address).state : "",
         zip_code: notes.shipping_address ? JSON.parse(notes.shipping_address).pinCode : "",
-        shipping_partner: shippingPartnerData, // Use the extracted shipping partner data
+        shipping_partner: shippingPartnerData,
         created_at: new Date()
       });
-      
+
       await newOrder.save();
-      
- // Return payment link details to client
+
       res.status(200).json({
         id: paymentLinkResponse.id,
         payment_link_url: paymentLinkResponse.short_url,
         reference_id: paymentLinkResponse.reference_id,
         amount: total,
         currency: 'INR',
-        status: paymentLinkResponse.status
+        status: paymentLinkResponse.status,
+        backend_calculated_total: total,
+        backend_calculated_shipping: calculatedShippingCost
       });
     } catch (apiError) {
       console.error('Razorpay API error:', apiError.response?.data || apiError.message);
-      
+
       return res.status(apiError.response?.status || 500).json({
         error: 'Razorpay API error',
         details: apiError.response?.data || { message: apiError.message }
@@ -980,11 +1382,13 @@ router.post('/create-payment-link', async (req, res) => {
     }
   } catch (error) {
     console.error('Error creating Razorpay payment link:', error);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to create payment link',
       message: error.message
     });
   }
 });
+
 module.exports = router;
+

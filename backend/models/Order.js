@@ -28,7 +28,12 @@ const OrderSchema = new mongoose.Schema({
   profile_name: {
     type: String
   },
-  
+    name: {
+    type: String
+  },
+    username: {
+    type: String
+  },
   // Payment information
   razorpayOrderId: String,
   razorpayPaymentId: String,
@@ -54,6 +59,7 @@ const OrderSchema = new mongoose.Schema({
     sku: String,
     product_name: String,
     quantity: Number,
+    selectedunit: String,
     price: Number
   }],
   

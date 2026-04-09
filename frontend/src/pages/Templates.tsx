@@ -1,45 +1,46 @@
-import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Welcomepage from "./Welcomepage";
+import Chatflowwelcomemessage from "./Chatflowwelcomemessage";
+
+const tabs = [
+  { label: "Welcome Message Template", component: Welcomepage },
+  { label: "Chatflow Welcome Message", component: Chatflowwelcomemessage },
+];
 
 export default function Templates() {
-  const [, setIsMobileView] = useState(false);
-  
-  // Detect mobile view
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 768);
-    };
-    
-    // Set initial value
-    handleResize();
-    
-    // Add event listener
-    window.addEventListener('resize', handleResize);
-    
-    // Cleanup
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const ActiveComponent = tabs[activeIndex].component;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center -mt-16 px-4 sm:px-0"> {/* Added px-4 for mobile padding */}
-      <div className="w-full max-w-md">
-        <div className="bg-white shadow-lg px-4 sm:px-6 py-4 sm:py-5 rounded-xl">
-          <h1 className="text-xl sm:text-2xl font-bold text-black text-center">Templates Page</h1>
+    <div className="min-h-screen bg-gray-100 w-full">
+
+      {/* Top Header */}
+      <div className="bg-white px-6 py-4 border-b border-gray-200">
+        <h1 className="text-xl font-bold text-[#2C3E50]">Templates</h1>
+      </div>
+
+      {/* Tab Bar - vertical on mobile, horizontal on md+ */}
+      <div className="bg-white border-b border-gray-200 px-6">
+        <div className="flex flex-col md:flex-row md:gap-0 md:overflow-x-auto">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.label}
+              onClick={() => setActiveIndex(index)}
+              className={`w-full md:w-auto text-left md:text-center px-5 py-3 text-sm font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap ${
+                activeIndex === index
+                  ? "border-[#E87028] text-[#E87028]"
+                  : "border-transparent text-gray-500 hover:text-[#E87028] hover:border-orange-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="mt-3 sm:mt-4 p-4 sm:p-6 space-y-3 sm:space-y-4 bg-white rounded-xl shadow-lg">
-          <Link
-            to="/welcomepage"
-            className="block w-full px-4 sm:px-6 py-3 sm:py-4 border-2 text-center border-pink-300 text-black rounded-lg text-base sm:text-lg font-semibold hover:bg-pink-100 hover:border-pink-400 transition-colors duration-200"
-          >
-            Go to Welcome Message Template
-          </Link>
-          <Link
-            to="/product-template"
-            className="block w-full px-4 sm:px-6 py-3 sm:py-4 border-2 text-center border-pink-300 text-black rounded-lg text-base sm:text-lg font-semibold hover:bg-pink-100 hover:border-pink-400 transition-colors duration-200"
-          >
-            Go to Product Template
-          </Link>
-        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="w-full">
+        <ActiveComponent />
       </div>
     </div>
   );

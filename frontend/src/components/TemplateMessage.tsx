@@ -1,5 +1,4 @@
 import React from 'react';
-import { formatMessageTime } from '@/utils/dateUtils';
 
 interface Button {
   type: string;
@@ -45,21 +44,24 @@ export interface TemplateMessageProps {
   onButtonClick: (payload: string) => void;
 }
 
+const formatMessageTime = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return !isNaN(date.getTime())
+    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
+};
+
 const TemplateMessage: React.FC<TemplateMessageProps> = ({ message, onButtonClick }) => {
-  //console.log('Incoming message:', message);
-  //console.log('Template message received:', message);
-  //console.log('Template payload:', message.response?.attachment?.payload);
-  //console.log('Template type:', message.response?.attachment?.payload?.template_type);
-  //console.log('Template elements:', message.response?.attachment?.payload?.elements);
   if (!message.response?.attachment?.payload) {
     console.error('Missing template payload data');
     return null;
   }
 
-
   const templateData = message.response.attachment.payload;
 
   const renderButton = (button: Button, index: number) => {
+    const buttonClasses = "w-full px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg text-center font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm hover:shadow-md";
+    
     if (button.type === 'web_url' && button.url) {
       return (
         <a
@@ -67,7 +69,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({ message, onButtonClic
           href={button.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-4 py-2 bg-blue-500 text-white rounded-md text-center hover:bg-blue-600"
+          className={buttonClasses}
         >
           {button.title}
         </a>
@@ -78,97 +80,87 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({ message, onButtonClic
       <button
         key={index}
         onClick={() => onButtonClick(button.payload || '')}
-        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+        className={buttonClasses}
       >
         {button.title}
       </button>
     );
   };
 
-  /*const renderGenericTemplate = (element: ProductElement) => (
-    <div className="product-template bg-white rounded-lg overflow-hidden">
-      {element.image_url && (
-        <img 
-          src={element.image_url} 
-          alt={element.title}
-          className="w-full h-48 object-cover"
-        />
-      )}
-      <div className="p-4">
-        <h3 className="font-bold text-lg mb-2">{element.title}</h3>
-        <p className="text-gray-700 whitespace-pre-line mb-4">{element.subtitle}</p>
-        <div className="flex flex-col gap-2">
-          {element.buttons.map((button, index) => renderButton(button, index))}
-        </div>
-      </div>
-    </div>
-  );*/
-
   const renderButtonTemplate = () => (
-    <>
-      <p className="font-medium mb-3">{templateData.text}</p>
+    <div className="space-y-3">
+      {templateData.text && (
+        <p className="text-gray-800 leading-relaxed">{templateData.text}</p>
+      )}
       {templateData.buttons && templateData.buttons.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pt-1">
           {templateData.buttons.map((button, index) => renderButton(button, index))}
         </div>
       )}
-    </>
+    </div>
   );
 
-  const renderTemplate = () => {
-    try {
-    switch (templateData.template_type) {
-      case 'generic':
-        if (!templateData.elements || templateData.elements.length === 0) {
-          console.error('No elements in generic template');
-          return null;
-        }
-        return templateData.elements?.map((element, index) => {
-          //console.log('Rendering element:', element);
-        //console.log('Element title:', element.title);
-        
-        return (
-          <div key={index} className="max-w-[300px] bg-white rounded-lg shadow-sm overflow-hidden">
-            <img 
-              src={element.image_url}
-              alt={element.title}
-              className="w-full h-48 object-cover"
-            />
+  const renderGenericTemplate = () => {
+    if (!templateData.elements || templateData.elements.length === 0) {
+      console.error('No elements in generic template');
+      return null;
+    }
+
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+        {templateData.elements.map((element, index) => (
+          <div key={index} className="min-w-[280px] max-w-[280px] bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+            <div className="relative">
+              <img 
+                src={element.image_url}
+                alt={element.title}
+                className="w-full h-44 object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+            </div>
             <div className="p-4">
-            <h3 className="font-bold text-lg mb-2 text-black">{element.title}</h3>
-              <p className="text-sm text-gray-600 whitespace-pre-line mb-4">{element.subtitle}</p>
+              <h3 className="font-bold text-lg mb-1.5 text-gray-900 line-clamp-2">{element.title}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mb-4 line-clamp-3">{element.subtitle}</p>
               <div className="space-y-2">
                 {element.buttons.map((button, buttonIndex) => renderButton(button, buttonIndex))}
               </div>
             </div>
           </div>
-        );
-    });
-      default:
-        return renderButtonTemplate();
+        ))}
+      </div>
+    );
+  };
+
+  const renderTemplate = () => {
+    try {
+      switch (templateData.template_type) {
+        case 'generic':
+          return renderGenericTemplate();
+        default:
+          return renderButtonTemplate();
+      }
+    } catch (error) {
+      console.error('Error rendering template:', error);
+      return null;
     }
-  } catch (error) {
-    console.error('Error rendering template:', error);
-    return null;
-  }
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-2">
       {message.message && (
-        <div className="flex justify-start mb-2">
-          <div className="max-w-[70%] rounded-lg px-4 py-2 bg-white shadow-sm">
-            <p className="break-words">{message.message}</p>
-            <div className="text-xs mt-1 text-gray-500">
+        <div className="flex justify-start">
+          <div className="max-w-[75%] rounded-2xl px-4 py-2.5 bg-white shadow-sm border border-gray-100">
+            <p className="text-gray-800 break-words leading-relaxed">{message.message}</p>
+            <div className="text-xs mt-1.5 text-gray-500">
               {formatMessageTime(message.Timestamp)}
             </div>
           </div>
         </div>
       )}
-      <div className="flex justify-end mb-2">
-        <div className="max-w-[70%] rounded-lg p-4 bg-blue-500 text-white">
+      <div className="flex justify-end">
+        <div className="max-w-[80%] rounded-2xl p-4 bg-gradient-to-br from-[#FAE8D6] to-[#F5DCC8] shadow-sm border border-orange-100">
           {renderTemplate()}
-          <div className="text-xs mt-2 text-white opacity-70">
+          <div className="text-xs mt-3 text-gray-600 text-right">
             {formatMessageTime(message.Timestamp)}
           </div>
         </div>
