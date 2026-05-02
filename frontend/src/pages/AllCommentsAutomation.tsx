@@ -861,7 +861,7 @@ const AllCommentsAutomation: React.FC = () => {
   // ── Check commentmoderation flag for this tenant ──────────────
   useEffect(() => {
   const tenentId = localStorage.getItem('tenentid');
-  const isCommentModeration = localStorage.getItem('commentmoderation') === 'true';
+  const isCommentModeration = localStorage.getItem('commentmoderation') !== 'false';
 
   if (!tenentId) return;
 

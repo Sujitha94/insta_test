@@ -45,7 +45,8 @@ router.post('/signup', async (req, res) => {
       phonenumber: phonenumber ?? '',   // ✅ save phonenumber, fallback to empty string
       tenentId,
       isAdmin,
-      blocked: false
+      blocked: false,
+      commentmoderation: true
     });
     
     await newsignup.save();
@@ -77,7 +78,7 @@ router.post('/login', async (req, res) => {
     const isAdmin = logindata.isAdmin;
     const blocked = logindata.blocked;
     const type = logindata.type;
-    const commentmoderation = logindata.commentmoderation ?? false;
+    const commentmoderation = logindata.commentmoderation !== false;
     const phonenumber = logindata.phonenumber ?? '';   // ✅ read phonenumber, fallback to empty string
 
     const token = jwt.sign(

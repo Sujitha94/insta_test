@@ -35,7 +35,7 @@ import {
 } from 'recharts';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API_BASE = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api';
+const API_BASE = 'https://https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface BillingAnalytics {
@@ -237,8 +237,8 @@ export default function Analytics() {
     if (!tenentId) return;
     setLoading(true);
     const ep = mode === 'billing'
-      ? `${API_BASE}/analytics/billing?tenentId=${tenentId}`
-      : `${API_BASE}/analytics/followers?tenentId=${tenentId}`;
+      ? `${API_BASE}/analyticsroute/billing?tenentId=${tenentId}`
+      : `${API_BASE}/analyticsroute/followers?tenentId=${tenentId}`;
     fetch(ep, { headers: { 'ngrok-skip-browser-warning': 'true' } })
       .then(r => r.json())
       .then(d => { if (d.success) { if (mode === 'billing') setBilling(d.data); else setFollowers(d.data); } })
@@ -791,3 +791,4 @@ export default function Analytics() {
     </div>
   );
 }
+

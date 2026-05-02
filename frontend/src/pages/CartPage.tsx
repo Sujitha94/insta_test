@@ -1376,7 +1376,7 @@ const CartPage: React.FC = () => {
           </div>
 
           <div className="w-full h-2 bg-gray-100 mb-6">
-            <div className="w-1/3 h-full bg-pink-500"></div>
+            <div className="w-1/3 h-full bg-orange-500"></div>
           </div>
 
           {error && (
@@ -1393,7 +1393,7 @@ const CartPage: React.FC = () => {
                 name="name"
                 value={shippingDetails.name}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   error && !shippingDetails.name ? 'border-red-500' : ''
                 }`}
                 required
@@ -1407,7 +1407,7 @@ const CartPage: React.FC = () => {
                 name="address"
                 value={shippingDetails.address}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   error && !shippingDetails.address ? 'border-red-500' : ''
                 }`}
                 required
@@ -1421,7 +1421,7 @@ const CartPage: React.FC = () => {
                 name="pinCode"
                 value={shippingDetails.pinCode}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   error && !shippingDetails.pinCode ? 'border-red-500' : ''
                 }`}
                 required
@@ -1437,7 +1437,7 @@ const CartPage: React.FC = () => {
                 name="city"
                 value={shippingDetails.city}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   error && !shippingDetails.city ? 'border-red-500' : ''
                 }`}
                 required
@@ -1451,7 +1451,7 @@ const CartPage: React.FC = () => {
                 name="state"
                 value={shippingDetails.state}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   error && !shippingDetails.state ? 'border-red-500' : ''
                 }`}
                 required
@@ -1465,7 +1465,7 @@ const CartPage: React.FC = () => {
                 name="country"
                 value="India"
                 readOnly
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
 
@@ -1476,7 +1476,7 @@ const CartPage: React.FC = () => {
                 name="phoneNumber"
                 value={shippingDetails.phoneNumber}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   error && !shippingDetails.phoneNumber ? 'border-red-500' : ''
                 }`}
                 required
@@ -1486,7 +1486,7 @@ const CartPage: React.FC = () => {
             <div className="mt-6 mb-4 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="mb-6">
                 <h4 className="text-sm font-normal text-gray-800 mb-1 flex items-center">
-                  <svg className="w-3.5 h-3.5 mr-1 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 mr-1 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                   Shipping Partner
@@ -1521,7 +1521,7 @@ const CartPage: React.FC = () => {
                   {!shippingDetails.state && (
                     <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                       <p className="text-sm text-yellow-800">
-                        Please enter your state to see available shipping options
+                        Please enter your state to see available shipping options 
                       </p>
                     </div>
                   )}
@@ -1537,7 +1537,7 @@ const CartPage: React.FC = () => {
                   <div className="relative">
                     <select
                       className="w-full p-2.5 bg-white border-2 border-gray-200 rounded-lg shadow-sm
-                                focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500
+                                focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500
                                 text-sm font-normal text-gray-700 cursor-pointer
                                 hover:border-gray-300 transition-all duration-200
                                 appearance-none bg-no-repeat bg-right pr-12"
@@ -1597,7 +1597,7 @@ const CartPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white py-3 rounded-md text-lg mt-4 transition-colors"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-md text-lg mt-4 transition-colors"
             >
               Continue
             </button>
@@ -1629,7 +1629,7 @@ const CartPage: React.FC = () => {
           </div>
 
           <div className="w-full h-2 bg-gray-100 mb-6">
-            <div className="w-2/3 h-full bg-pink-500"></div>
+            <div className="w-2/3 h-full bg-orange-500"></div>
           </div>
 
           <div className="mb-8">
@@ -1641,7 +1641,7 @@ const CartPage: React.FC = () => {
 
           <button
             onClick={() => setCheckoutStep('payment')}
-            className="w-full bg-pink-500 hover:bg-pink-600 text-white py-3 rounded-md text-lg transition-colors mb-4"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-md text-lg transition-colors mb-4"
           >
             Accept and Submit
           </button>
@@ -1649,7 +1649,7 @@ const CartPage: React.FC = () => {
           <div className="flex items-center justify-center mt-6 text-sm text-gray-600">
             <p className="flex items-center">
               <span>Managed by {tenentId ? "Vaseegrah Shop" : "Shop"}. </span>
-              <a href="#" className="text-pink-500 ml-1">Learn more</a>
+              <a href="#" className="text-orange-500 ml-1">Learn more</a>
             </p>
           </div>
         </div>
@@ -1679,7 +1679,7 @@ const CartPage: React.FC = () => {
           </div>
 
           <div className="w-full h-2 bg-gray-100 mb-6">
-            <div className="w-full h-full bg-pink-500"></div>
+            <div className="w-full h-full bg-orange-500"></div>
           </div>
 
           {stockValidationInProgress && (
@@ -1839,7 +1839,7 @@ const CartPage: React.FC = () => {
                 </div>
               ) : null;
             })()}
-            <div className="flex justify-between font-bold text-lg mt-2 text-pink-600">
+            <div className="flex justify-between font-bold text-lg mt-2 text-orange-600">
               <span>Total</span>
               <span>₹{calculateTotal().toFixed(2)}</span>
             </div>
@@ -1902,7 +1902,7 @@ const CartPage: React.FC = () => {
                 className={`w-full ${
                   stockValidationInProgress
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-pink-600 hover:bg-pink-700'
+                    : 'bg-orange-600 hover:bg-orange-700'
                 } text-white py-3 rounded-md text-lg transition-colors`}
               >
                 {stockValidationInProgress ? (

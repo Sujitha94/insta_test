@@ -88,7 +88,7 @@ router.get('/products', async (req, res) => {
 // Get product details by SKU
 router.get('/product-details', async (req, res) => {
   try {
-    const { tenentId, sku } = req.query;
+    const { tenentId, sku } = req.query; 
 
     if (!tenentId || !sku) {
       return res.status(400).json({ error: 'Tenant ID and SKU are required' });

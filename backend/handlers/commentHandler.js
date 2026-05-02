@@ -41,7 +41,7 @@ You MUST understand and moderate comments in:
 - Tanglish            (Tamil written in English letters — loosu, poda, poriki, thevdiya, baadu, naaye, mokkai)
 - English             (standard and slang)
 - Mixed / code-switched (e.g. "enna da ithu, total waste of money")
-
+ 
 Classify the comment as exactly one of:
 - "abusive"    — hate speech, slurs, sexual abuse, threats, body shaming, caste slurs, harassment
 - "borderline" — rude, passive-aggressive, mildly offensive, ambiguous tone
@@ -203,7 +203,9 @@ async function handleCommentMessage(eventData) {
     }
 
     // ── STEP 5: Moderation (only for specific tenant) ────────────
-    if (signupdata?.commentmoderation === true) {
+    const isCommentModerationEnabled = signupdata?.commentmoderation !== false;
+
+    if (isCommentModerationEnabled) {
       const moderation = await moderateComment(commentText);
 
       console.log(

@@ -79,6 +79,7 @@ const f3engineapiRoutes = require("./f3engineapiRoutes");
 const dashboardnotificationRoutes = require("./dashboardnotificationRoutes");
 const commentmoderationRoutes = require("./commentmoderationRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
+const aiInsightsRoutes = require("./aiInsightsRoutes");
 //const websocketRoutes = require('./websocketRoutes');
 //const franc = require('franc-min');
 //const WebSocket = require('ws');
@@ -174,7 +175,8 @@ router.use("/apikeyroute", apikeyRoutes);
 router.use("/f3engineapiroute", f3engineapiRoutes);
 router.use("/dashboardnotificationroute", dashboardnotificationRoutes);
 router.use("/commentmoderationroute", commentmoderationRoutes);
-router.use("/analyticsroute", analyticsRoutes);
+router.use("/analytics", analyticsRoutes);
+router.use("/aiInsightsroute", aiInsightsRoutes);
 
 const getJwtIdentity = (req, res, next) => {
   // Get token from Authorization header (Bearer token)

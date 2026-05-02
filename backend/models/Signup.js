@@ -10,7 +10,7 @@ const signupSchema = new mongoose.Schema({
     isAdmin: { type: Boolean, default: false },
     blocked: { type: Boolean, default: false },
     type:{ type: String},
-    commentmoderation: { type: Boolean, default: false }
+    commentmoderation: { type: Boolean, default: true }
     
   }, { timestamps: true });
   const Signup = mongoose.model('Signup', signupSchema);
