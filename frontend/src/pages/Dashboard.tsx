@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
 // ----------------- CONFIG -----------------
-const API_BASE_URL_CHATBOT = "https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/dashboardroute/chatbot";
-const API_BASE_URL_DASHBOARD = "https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/dashboardroute";
+const API_BASE_URL_CHATBOT = "https://snaking-outhouse-oppose.ngrok-free.dev/api/dashboardroute/chatbot";
+const API_BASE_URL_DASHBOARD = "https://snaking-outhouse-oppose.ngrok-free.dev/api/dashboardroute";
 
 // ----------------- TYPES -----------------
 interface Message {
@@ -106,8 +106,8 @@ const MiniDonut = ({
             <stop offset="100%" stopColor={color === '#E86C15' ? '#D63031' : color} />
           </linearGradient>
         </defs>
-        <circle cx={size/2} cy={size/2} r={radius} stroke="#F3E9E2" strokeWidth={strokeWidth} fill="transparent" strokeLinecap="round" />
-        <circle cx={size/2} cy={size/2} r={radius} stroke={`url(#${id})`} strokeWidth={strokeWidth} fill="transparent"
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke="#F3E9E2" strokeWidth={strokeWidth} fill="transparent" strokeLinecap="round" />
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke={`url(#${id})`} strokeWidth={strokeWidth} fill="transparent"
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
           className="transition-all duration-1000 ease-out" />
       </svg>
@@ -271,7 +271,7 @@ function Chatbot() {
             </div>
           </div>
           {showHistory && (
-            <div className="absolute top-[60px] left-0 w-full h-[calc(100%-60px)] bg-white z-30 flex flex-col">
+            <div className="absolute top-[60px] left-0 w-full h-[calc(100   %-60px)] bg-white z-30 flex flex-col">
               <div className="p-2 bg-gray-50 border-b border-gray-100 font-semibold text-gray-600 text-xs px-4">Recent Chats</div>
               <div className="flex-1 overflow-y-auto">
                 {chatSessions.length === 0 && <p className="text-xs text-gray-400 text-center mt-8">No chat history yet.</p>}
@@ -292,7 +292,7 @@ function Chatbot() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
                 <div className={`max-w-[80%] p-3 rounded-2xl text-xs whitespace-pre-line ${m.sender === 'user' ? 'bg-black text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none shadow-sm'}`}>
-                  {m.text}
+                  {m.text}  
                 </div>
               </div>
             ))}
@@ -300,7 +300,7 @@ function Chatbot() {
               <div className="flex justify-start mb-3">
                 <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#F57F26] to-[#D63031] flex items-center justify-center text-white mr-2"><Bot size={12} /></div>
                 <div className="bg-white p-3 rounded-2xl rounded-bl-none shadow-sm flex gap-1 items-center">
-                  {[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full" style={{ animation: `bounce 1s infinite ${i * 0.2}s` }} />)}
+                  {[0, 1, 2].map(i => <div key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full" style={{ animation: `bounce 1s infinite ${i * 0.2}s` }} />)}
                 </div>
               </div>
             )}
@@ -376,20 +376,20 @@ export default function Dashboard() {
       .then(d => {
         if (!d.success) throw new Error(d.message || 'API returned success:false');
         setStats({
-          totalResponses:    d.totalResponses    ?? 0,
-          botMessages:       d.botMessages       ?? 0,
-          robotMessages:     d.robotMessages     ?? 0,
-          templateMessages:  d.templateMessages  ?? 0,
-          carouselMessages:  d.carouselMessages  ?? 0,
-          commentReplies:    d.commentReplies    ?? 0,
-          totalOrders:       d.totalOrders       ?? 0,
-          totalOrderAmount:  d.totalOrderAmount  ?? 0,
+          totalResponses: d.totalResponses ?? 0,
+          botMessages: d.botMessages ?? 0,
+          robotMessages: d.robotMessages ?? 0,
+          templateMessages: d.templateMessages ?? 0,
+          carouselMessages: d.carouselMessages ?? 0,
+          commentReplies: d.commentReplies ?? 0,
+          totalOrders: d.totalOrders ?? 0,
+          totalOrderAmount: d.totalOrderAmount ?? 0,
           loading: false,
           allTimeStats: {
-            totalOrders:        d.allTimeStats?.totalOrders        ?? 0,
-            totalRevenue:       d.allTimeStats?.totalRevenue       ?? 0,
-            totalCount:         d.allTimeStats?.totalCount         ?? 0,
-            activeCustomers:    d.allTimeStats?.activeCustomers    ?? 0,
+            totalOrders: d.allTimeStats?.totalOrders ?? 0,
+            totalRevenue: d.allTimeStats?.totalRevenue ?? 0,
+            totalCount: d.allTimeStats?.totalCount ?? 0,
+            activeCustomers: d.allTimeStats?.activeCustomers ?? 0,
             totalStoryComments: d.allTimeStats?.totalStoryComments ?? 0,
           },
           monthlyRevenueData: Array.isArray(d.monthlyRevenueData) ? d.monthlyRevenueData : [],
@@ -407,18 +407,18 @@ export default function Dashboard() {
 
   const formatCount = (num: number) =>
     num >= 1_000_000 ? (num / 1_000_000).toFixed(1) + 'M'
-    : num >= 1_000   ? (num / 1_000).toFixed(1) + 'k'
-    : String(num);
+      : num >= 1_000 ? (num / 1_000).toFixed(1) + 'k'
+        : String(num);
 
-  const yAxisLabels    = ['50k', '40k', '30k', '20k', '10k', '0'];
-  const MAX_CHART_VAL  = 50000;
-  const ordersDonutPct = stats.totalOrders       > 0 ? Math.min((stats.totalOrders / 50) * 100, 100)         : 0;
-  const revenueDonutPct= stats.totalOrderAmount  > 0 ? Math.min((stats.totalOrderAmount / 10000) * 100, 100) : 0;
-  const timeLabel      = timeframe === 'today' ? 'Today' : timeframe === 'last7days' ? 'Last 7 Days' : 'Last 30 Days';
+  const yAxisLabels = ['50k', '40k', '30k', '20k', '10k', '0'];
+  const MAX_CHART_VAL = 50000;
+  const ordersDonutPct = stats.totalOrders > 0 ? Math.min((stats.totalOrders / 50) * 100, 100) : 0;
+  const revenueDonutPct = stats.totalOrderAmount > 0 ? Math.min((stats.totalOrderAmount / 10000) * 100, 100) : 0;
+  const timeLabel = timeframe === 'today' ? 'Today' : timeframe === 'last7days' ? 'Last 7 Days' : 'Last 30 Days';
 
-  const cardBase  = 'bg-white rounded-[20px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col';
+  const cardBase = 'bg-white rounded-[20px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col';
   const innerCard = 'bg-[#F9FAFB] rounded-[16px] p-3 flex flex-col justify-between relative hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200/50 overflow-visible';
-  const iconBox   = 'bg-[#FFF7ED] rounded-xl w-8 h-8 flex items-center justify-center text-[#E86C15] shadow-sm shrink-0';
+  const iconBox = 'bg-[#FFF7ED] rounded-xl w-8 h-8 flex items-center justify-center text-[#E86C15] shadow-sm shrink-0';
 
   if (!tenentId) return (
     <div className="h-screen w-screen flex items-center justify-center bg-[#F6F6F6] text-gray-500 font-medium font-['Poppins']">
@@ -435,9 +435,9 @@ export default function Dashboard() {
       {/* FIX 1: justify-between spreads items evenly, gap-6 adds comfortable spacing */}
       <div className="mobile-profile-stats flex items-center justify-between mt-4 w-full px-1">
         {[
-          { val: instagramData.profile?.media_count     ?? 0, label: 'Posts',     fmt: undefined },
+          { val: instagramData.profile?.media_count ?? 0, label: 'Posts', fmt: undefined },
           { val: instagramData.profile?.followers_count ?? 0, label: 'Followers', fmt: formatCount },
-          { val: instagramData.profile?.follows_count   ?? 0, label: 'Following', fmt: undefined },
+          { val: instagramData.profile?.follows_count ?? 0, label: 'Following', fmt: undefined },
         ].map(({ val, label, fmt }, i) => (
           <div key={label} className={`text-center flex-1 ${i !== 2 ? 'border-r border-gray-200' : ''}`}>
             <span className="mobile-stat-value block text-xl font-semibold text-gray-900 leading-none">
@@ -789,7 +789,7 @@ export default function Dashboard() {
                     Array.from({ length: 12 }).map((_, i) => (
                       <div key={i} className="flex flex-col items-center justify-end h-full w-full relative">
                         <div className="w-3 xl:w-4 rounded-t-sm" style={{
-                          height: `${[38,52,28,60,42,68,35,55,45,58,32,50][i]}%`,
+                          height: `${[38, 52, 28, 60, 42, 68, 35, 55, 45, 58, 32, 50][i]}%`,
                           background: 'linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%)',
                           backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite',
                         }} />
@@ -798,12 +798,12 @@ export default function Dashboard() {
                   ) : stats.monthlyRevenueData.length > 0 ? (
                     stats.monthlyRevenueData.map((data, idx) => {
                       const totalH = Math.min((data.revenue / MAX_CHART_VAL) * 100, 100);
-                      const costH  = Math.min((data.cost   / MAX_CHART_VAL) * 100, 100);
+                      const costH = Math.min((data.cost / MAX_CHART_VAL) * 100, 100);
                       return (
                         <div key={idx} className="flex flex-col items-center justify-end h-full w-full group cursor-pointer relative pt-2">
                           <div className="w-3 xl:w-4 h-full flex flex-col justify-end transition-transform group-hover:scale-105 duration-200 origin-bottom">
                             {(totalH - costH) > 0 && <div style={{ height: `${totalH - costH}%` }} className="w-full bg-gradient-to-b from-[#E86C15] to-[#D63031] rounded-t-[3px] mb-[1px] shadow-sm" />}
-                            {costH > 0           && <div style={{ height: `${costH}%` }}           className="w-full bg-[#4B4B4B] rounded-b-[3px] shadow-sm" />}
+                            {costH > 0 && <div style={{ height: `${costH}%` }} className="w-full bg-[#4B4B4B] rounded-b-[3px] shadow-sm" />}
                           </div>
                           <div className="absolute top-full mt-1.5">
                             <span className="block text-[9px] font-medium text-gray-500 whitespace-nowrap">{data.month}</span>

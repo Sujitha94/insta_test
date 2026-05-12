@@ -35,7 +35,7 @@ import {
 } from 'recharts';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API_BASE = 'https://https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api';
+const API_BASE = 'https://https://snaking-outhouse-oppose.ngrok-free.dev/api';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface BillingAnalytics {

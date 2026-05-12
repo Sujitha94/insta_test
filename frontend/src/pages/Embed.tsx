@@ -41,8 +41,8 @@ export default function Embed() {
     const tenantId = localStorage.getItem('tenentid');
 
     const instagramOAuthUrl =
-    'https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&' +
-        `client_id=1577839799518386&redirect_uri=https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/instagram_authroute/auth/instagram/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments&state=${tenantId || ''}`; 
+      'https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&' +
+      `client_id=1577839799518386&redirect_uri=https://snaking-outhouse-oppose.ngrok-free.dev/api/instagram_authroute/auth/instagram/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments&state=${tenantId || ''}`;
 
     const popupWidth = 600;
     const popupHeight = 700;
@@ -71,12 +71,12 @@ export default function Embed() {
     <div className="min-h-screen bg-[#fcfcfc] flex items-center justify-center px-4">
       {/* Main Card */}
       <div className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] p-10 rounded-[24px] max-w-[420px] w-full text-center border border-gray-50">
-        
+
         {/* Logo/Icon Area */}
         <div className="flex justify-center mb-6">
           <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#e52d27] to-[#ef8e38] flex items-center justify-center shadow-lg shadow-orange-200">
             <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10 text-white" stroke="currentColor" strokeWidth="2">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" fill="currentColor"/>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
             </svg>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function Embed() {
           <p className="text-sm text-gray-500">
             By connecting, you agree to our <span className="text-gray-700 font-medium">Terms of Service</span>
           </p>
-          
+
           <a
             href="/policy"
             className="text-[#e52d27] text-sm font-medium hover:underline flex items-center justify-center gap-1 transition-colors"

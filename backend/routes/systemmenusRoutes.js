@@ -7,7 +7,7 @@ const Signup = require("../models/Signup");
 // Add the app URL configuration
 const appUrl =
   process.env.APP_URL ||
-  "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+  "https://snaking-outhouse-oppose.ngrok-free.dev";
 
 // ============================================
 // MIDDLEWARE FUNCTIONS
@@ -859,9 +859,8 @@ router.delete(
 
       res.status(200).json({
         success: true,
-        message: `InstaxBot system menu ${
-          permanent === "true" ? "permanently deleted" : "deactivated"
-        } successfully`,
+        message: `InstaxBot system menu ${permanent === "true" ? "permanently deleted" : "deactivated"
+          } successfully`,
         data: {
           tenentId: tenentId,
           action: permanent === "true" ? "permanently deleted" : "soft deleted",

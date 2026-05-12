@@ -24,7 +24,7 @@ export default function SignupPage(): JSX.Element {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/auth/signup', {
+      const response = await axios.post('https://snaking-outhouse-oppose.ngrok-free.dev/api/auth/signup', {
         name,
         email,
         password,

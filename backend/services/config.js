@@ -58,7 +58,7 @@ module.exports = {
   // URL of your app domain. Will be automatically updated.
   appUrl:
     process.env.APP_URL ||
-    "https://inocencia-shiftiest-nonodorously.ngrok-free.dev",
+    "https://snaking-outhouse-oppose.ngrok-free.dev",
 
   // Preferred port (default to 3000)
   port: process.env.PORT || 80,
@@ -76,8 +76,8 @@ module.exports = {
     return `${this.appUrl}/webhook`;
   },
 
-  checkEnvVariables: function() {
-    ENV_VARS.forEach(function(key) {
+  checkEnvVariables: function () {
+    ENV_VARS.forEach(function (key) {
       if (!process.env[key]) {
         console.warn(`WARNING: Missing required environment variable ${key}`);
       }

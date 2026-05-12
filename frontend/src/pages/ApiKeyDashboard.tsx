@@ -3,7 +3,7 @@ import { Key, Plus, Trash2, Eye, EyeOff, Copy, Check, AlertCircle, BarChart3, Sh
 import Swal from 'sweetalert2';
 
 // Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL|| 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev'; 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
 // Helper function to get tenentId from localStorage
 const getTenentId = () => {
@@ -97,13 +97,13 @@ const ApiKeyDashboard: React.FC = () => {
     try {
       setLoading(true);
       const tenentId = getTenentId();
-      
+
       if (!tenentId) {
         setError('Tenant ID not found. Please login again.');
         setLoading(false);
         return;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/api/apikeyroute?tenentId=${tenentId}`, {
         method: 'GET',
         headers: {
@@ -129,7 +129,7 @@ const ApiKeyDashboard: React.FC = () => {
     e.preventDefault();
     try {
       const tenentId = getTenentId();
-      
+
       if (!tenentId) {
         await Swal.fire({
           title: 'Error',
@@ -139,7 +139,7 @@ const ApiKeyDashboard: React.FC = () => {
         });
         return;
       }
-      
+
       const payload = {
         tenentId: tenentId,
         name: formData.name,
@@ -207,7 +207,7 @@ const ApiKeyDashboard: React.FC = () => {
 
     try {
       const tenentId = getTenentId();
-      
+
       if (!tenentId) {
         await Swal.fire({
           title: 'Error',
@@ -217,7 +217,7 @@ const ApiKeyDashboard: React.FC = () => {
         });
         return;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/api/apikeyroute/${id}`, {
         method: 'DELETE',
         headers: {
@@ -260,7 +260,7 @@ const ApiKeyDashboard: React.FC = () => {
   const toggleKeyStatus = async (key: ApiKey): Promise<void> => {
     try {
       const tenentId = getTenentId();
-      
+
       if (!tenentId) {
         await Swal.fire({
           title: 'Error',
@@ -270,16 +270,16 @@ const ApiKeyDashboard: React.FC = () => {
         });
         return;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/api/apikeyroute/${key.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           tenentId: tenentId,
-          isActive: !key.isActive 
+          isActive: !key.isActive
         })
       });
 
@@ -416,11 +416,10 @@ const ApiKeyDashboard: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       <h3 className="text-lg sm:text-xl font-semibold text-slate-900 truncate">{key.name}</h3>
                       <div className="flex gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          key.isActive 
-                            ? 'bg-orange-100 text-orange-800' 
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${key.isActive
+                            ? 'bg-orange-100 text-orange-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}>
+                          }`}>
                           {key.isActive ? 'Active' : 'Inactive'}
                         </span>
                         {key.expiresAt && new Date(key.expiresAt) < new Date() && (
@@ -519,7 +518,7 @@ const ApiKeyDashboard: React.FC = () => {
                       <p className="text-xs sm:text-sm text-orange-700 mb-4">
                         Save this key securely - it will not be shown again.
                       </p>
-                      
+
                       <div className="bg-white rounded-lg p-3 sm:p-4 border border-orange-200">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                           <label className="text-sm font-medium text-slate-700">Your API Key</label>
@@ -598,7 +597,7 @@ const ApiKeyDashboard: React.FC = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Rate Limit (Requests)</label>
                         <input
                           type="number" value={formData.rateLimit.maxRequests}
-                          onChange={(e) => setFormData({...formData, rateLimit: { ...formData.rateLimit, maxRequests: e.target.value }})}
+                          onChange={(e) => setFormData({ ...formData, rateLimit: { ...formData.rateLimit, maxRequests: e.target.value } })}
                           className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
                           placeholder="e.g., 1000"
                         />
@@ -607,7 +606,7 @@ const ApiKeyDashboard: React.FC = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Window (ms)</label>
                         <input
                           type="number" value={formData.rateLimit.windowMs}
-                          onChange={(e) => setFormData({...formData, rateLimit: { ...formData.rateLimit, windowMs: e.target.value }})}
+                          onChange={(e) => setFormData({ ...formData, rateLimit: { ...formData.rateLimit, windowMs: e.target.value } })}
                           className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
                           placeholder="e.g., 60000"
                         />
@@ -700,9 +699,8 @@ const UsageModal: React.FC<UsageModalProps> = ({ apiKey, onClose }) => {
             {[7, 14, 30, 90].map((d) => (
               <button
                 key={d} onClick={() => setDays(d)}
-                className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${
-                  days === d ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${days === d ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
               >
                 {d} days
               </button>

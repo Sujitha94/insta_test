@@ -180,7 +180,7 @@ const CartPage: React.FC = () => {
     if (tenentId) localStorage.setItem('tenentId', tenentId);
   }, [tenentId]);
 
-  const appUrl = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+  const appUrl = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
   useEffect(() => {
     const verifySecurity = async () => {
@@ -245,7 +245,7 @@ const CartPage: React.FC = () => {
 
     try {
       console.log(`Fetching shipping methods for state: ${state}`);
-      
+
       const response = await axios.get(`${appUrl}/api/cartroute/shipping-methods/${tenentId}`, {
         params: { state }
       });
@@ -254,7 +254,7 @@ const CartPage: React.FC = () => {
 
       if (Array.isArray(response.data)) {
         setAvailableShippingMethods(response.data);
-        
+
         // If current selection is not available for this state, clear it
         if (selectedShippingPartner) {
           const isStillValid = response.data.some(method => method._id === selectedShippingPartner.id);
@@ -593,9 +593,9 @@ const CartPage: React.FC = () => {
       console.error('Error updating quantity:', axiosError);
 
       if (axiosError.response &&
-          axiosError.response.status === 400 &&
-          axiosError.response.data &&
-          axiosError.response.data.insufficientStock) {
+        axiosError.response.status === 400 &&
+        axiosError.response.data &&
+        axiosError.response.data.insufficientStock) {
         alert(axiosError.response.data.message);
         setError(axiosError.response.data.message);
       } else {
@@ -645,14 +645,14 @@ const CartPage: React.FC = () => {
       });
 
       if (response.data && response.data.cart) {
-         await fetchCartData();
-         
-         const items = response.data.cart.items || [];
-         if (items.length > 0) {
-            validateCartStockOnLoad();
-         } else {
-            setStockIssues([]);
-         }
+        await fetchCartData();
+
+        const items = response.data.cart.items || [];
+        if (items.length > 0) {
+          validateCartStockOnLoad();
+        } else {
+          setStockIssues([]);
+        }
       } else {
         await fetchCartData();
       }
@@ -715,8 +715,8 @@ const CartPage: React.FC = () => {
       }
 
       if (!shippingDetails.name || !shippingDetails.address || !shippingDetails.pinCode ||
-          !shippingDetails.city || !shippingDetails.state || !shippingDetails.phoneNumber ||
-          !finalShippingPartner) {
+        !shippingDetails.city || !shippingDetails.state || !shippingDetails.phoneNumber ||
+        !finalShippingPartner) {
         setError('Please fill in all required fields and select a shipping partner');
         return;
       }
@@ -788,7 +788,7 @@ const CartPage: React.FC = () => {
   const calculateShippingCost = (): number => {
     const subtotal = cart.total || 0;
     const cartWeight = cart.totalWeight || 0;
-    
+
     const selectedPartnerId = selectedShippingPartner?.id || shippingDetails.shippingPartner?.id;
     const selectedMethod = shippingMethods.find(m => m._id === selectedPartnerId);
 
@@ -821,69 +821,69 @@ const CartPage: React.FC = () => {
     }
 
     if (selectedMethod) {
-        if (selectedMethod.type === 'FREE_SHIPPING') {
-            const min = selectedMethod.minAmount || 0;
-            if (subtotal >= min) return 0;
-            return 0; 
+      if (selectedMethod.type === 'FREE_SHIPPING') {
+        const min = selectedMethod.minAmount || 0;
+        if (subtotal >= min) return 0;
+        return 0;
+      }
+
+      if (selectedMethod.type === 'COURIER_PARTNER') {
+        const basePrice = selectedMethod.defaultPrice || 0;
+        let additionalCost = 0;
+
+        if (selectedMethod.isPanIndia) {
+          // Pan-India shipping uses only base price
+          return basePrice;
         }
 
-        if (selectedMethod.type === 'COURIER_PARTNER') {
-            const basePrice = selectedMethod.defaultPrice || 0;
-            let additionalCost = 0;
+        if (selectedMethod.useRegionWeight && selectedMethod.regionWeightConfigs && shippingDetails.state) {
+          const normalizedState = normalizeStateName(shippingDetails.state);
+          const config = selectedMethod.regionWeightConfigs.find(c =>
+            c.regions && c.regions.some(r => normalizeStateName(r) === normalizedState)
+          );
 
-            if (selectedMethod.isPanIndia) {
-                // Pan-India shipping uses only base price
-                return basePrice;
+          if (config) {
+            const range = config.weightRanges.find(r => cartWeight >= r.minWeight && cartWeight <= r.maxWeight);
+            if (range) {
+              additionalCost = range.price;
+            } else {
+              // Fallback logic for weights outside defined ranges
+              const sortedRanges = [...config.weightRanges].sort((a, b) => a.minWeight - b.minWeight);
+              if (cartWeight > sortedRanges[sortedRanges.length - 1].maxWeight) {
+                additionalCost = sortedRanges[sortedRanges.length - 1].price;
+              } else {
+                additionalCost = sortedRanges[0].price;
+              }
             }
-
-            if (selectedMethod.useRegionWeight && selectedMethod.regionWeightConfigs && shippingDetails.state) {
-                 const normalizedState = normalizeStateName(shippingDetails.state);
-                 const config = selectedMethod.regionWeightConfigs.find(c => 
-                    c.regions && c.regions.some(r => normalizeStateName(r) === normalizedState)
-                 );
-                 
-                 if (config) {
-                     const range = config.weightRanges.find(r => cartWeight >= r.minWeight && cartWeight <= r.maxWeight);
-                     if (range) {
-                         additionalCost = range.price;
-                     } else {
-                         // Fallback logic for weights outside defined ranges
-                         const sortedRanges = [...config.weightRanges].sort((a, b) => a.minWeight - b.minWeight);
-                         if (cartWeight > sortedRanges[sortedRanges.length - 1].maxWeight) {
-                             additionalCost = sortedRanges[sortedRanges.length - 1].price;
-                         } else {
-                             additionalCost = sortedRanges[0].price;
-                         }
-                     }
-                     return basePrice + additionalCost;
-                 }
-            }
-
-            if (selectedMethod.useWeight && selectedMethod.ratePerKg) {
-                 const chargeableWeight = Math.max(0.5, cartWeight); 
-                 additionalCost = Math.ceil(chargeableWeight * selectedMethod.ratePerKg);
-                 return basePrice + additionalCost;
-            }
-
-            if (selectedMethod.regionRates && selectedMethod.regionRates.length > 0 && shippingDetails.state) {
-                 const normalizedState = normalizeStateName(shippingDetails.state);
-                 const rate = selectedMethod.regionRates.find(r => 
-                    r.regions && r.regions.some(reg => normalizeStateName(reg) === normalizedState)
-                 );
-                 if (rate) {
-                     additionalCost = rate.price;
-                     return basePrice + additionalCost;
-                 }
-            }
-
-            if (selectedMethod.fixedRate !== undefined && selectedMethod.fixedRate !== null) {
-                additionalCost = selectedMethod.fixedRate;
-                return basePrice + additionalCost;
-            }
-            
-            // Default base price if no other rules match
-            return basePrice;
+            return basePrice + additionalCost;
+          }
         }
+
+        if (selectedMethod.useWeight && selectedMethod.ratePerKg) {
+          const chargeableWeight = Math.max(0.5, cartWeight);
+          additionalCost = Math.ceil(chargeableWeight * selectedMethod.ratePerKg);
+          return basePrice + additionalCost;
+        }
+
+        if (selectedMethod.regionRates && selectedMethod.regionRates.length > 0 && shippingDetails.state) {
+          const normalizedState = normalizeStateName(shippingDetails.state);
+          const rate = selectedMethod.regionRates.find(r =>
+            r.regions && r.regions.some(reg => normalizeStateName(reg) === normalizedState)
+          );
+          if (rate) {
+            additionalCost = rate.price;
+            return basePrice + additionalCost;
+          }
+        }
+
+        if (selectedMethod.fixedRate !== undefined && selectedMethod.fixedRate !== null) {
+          additionalCost = selectedMethod.fixedRate;
+          return basePrice + additionalCost;
+        }
+
+        // Default base price if no other rules match
+        return basePrice;
+      }
     }
 
     const currentPartner = selectedShippingPartner || shippingDetails.shippingPartner;
@@ -1019,12 +1019,12 @@ const CartPage: React.FC = () => {
     if (tenentId === TENANT_ID_ST_COURIER) {
       return shippingMethods;
     }
-    
+
     // If state is selected and we have filtered methods, use those
     if (shippingDetails.state && availableShippingMethods.length > 0) {
       return availableShippingMethods;
     }
-    
+
     // Otherwise, show all methods
     return shippingMethods;
   };
@@ -1161,37 +1161,37 @@ const CartPage: React.FC = () => {
                     </div>
 
                     {hasStockIssue && (
-                    <div className="mt-2 bg-red-100 p-3 rounded-md mb-3">
-                      <p className="text-red-700 text-sm font-medium">
-                        {stockIssue.available === 0 ?
-                          "No stock available" :
-                          `You selected ${stockIssue.requested} but only ${stockIssue.available} are available`
-                        }
-                      </p>
-                      <div className="flex space-x-2 mt-2">
-                        {stockIssue.available > 0 && (
+                      <div className="mt-2 bg-red-100 p-3 rounded-md mb-3">
+                        <p className="text-red-700 text-sm font-medium">
+                          {stockIssue.available === 0 ?
+                            "No stock available" :
+                            `You selected ${stockIssue.requested} but only ${stockIssue.available} are available`
+                          }
+                        </p>
+                        <div className="flex space-x-2 mt-2">
+                          {stockIssue.available > 0 && (
+                            <button
+                              onClick={() => handleQuantityChange(item.sku, stockIssue.available, stockIssue.available)}
+                              className="bg-blue-600 text-white text-sm px-3 py-1 rounded-md hover:bg-blue-700 flex items-center"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4" />
+                              </svg>
+                              Update to {stockIssue.available}
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleQuantityChange(item.sku, stockIssue.available, stockIssue.available)}
-                            className="bg-blue-600 text-white text-sm px-3 py-1 rounded-md hover:bg-blue-700 flex items-center"
+                            onClick={() => handleRemoveItem(item.sku)}
+                            className="bg-red-500 text-white text-sm px-3 py-1 rounded-md hover:bg-red-600 flex items-center"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            Update to {stockIssue.available}
+                            Remove Item
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleRemoveItem(item.sku)}
-                          className="bg-red-500 text-white text-sm px-3 py-1 rounded-md hover:bg-red-600 flex items-center"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Remove Item
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                     <div className="grid grid-cols-3 gap-2 items-center">
                       <div>
@@ -1241,123 +1241,121 @@ const CartPage: React.FC = () => {
             </button>
 
             <div className="bg-white rounded-lg shadow p-6 w-full md:w-80">
-            <h2 className="text-lg font-medium mb-4">Order Summary</h2>
+              <h2 className="text-lg font-medium mb-4">Order Summary</h2>
 
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>₹{cart.total.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Shipping</span>
-                <span>Calculated at checkout</span>
-              </div>
-              {freeShippingThreshold && freeShippingThreshold.isActive && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Free Shipping Threshold</span>
-                  <span>₹{freeShippingThreshold.thresholdAmount.toFixed(2)}</span>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{cart.total.toFixed(2)}</span>
                 </div>
-              )}
-            </div>
-
-            <div className="border-t pt-4 mb-6">
-              <div className="flex justify-between font-medium">
-                <span>Total</span>
-                <span>₹{cart.total.toFixed(2)}</span>
+                <div className="flex justify-between text-gray-500">
+                  <span>Shipping</span>
+                  <span>Calculated at checkout</span>
+                </div>
+                {freeShippingThreshold && freeShippingThreshold.isActive && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Free Shipping Threshold</span>
+                    <span>₹{freeShippingThreshold.thresholdAmount.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
-            </div>
 
-            <div className="space-y-2">
-              {stockIssues.length > 0 ? (
-                <>
-                  <button
-                    onClick={async () => {
-                      try {
-                        setIsLoading(true);
-                        setStockIssues([]);
-                        await fetchCartData();
-                        const stockValidation = await validateStock();
+              <div className="border-t pt-4 mb-6">
+                <div className="flex justify-between font-medium">
+                  <span>Total</span>
+                  <span>₹{cart.total.toFixed(2)}</span>
+                </div>
+              </div>
 
-                        if (!stockValidation.valid) {
-                          setStockIssues(stockValidation.issues);
-                          toast.info("Stock check complete. Please review your cart.", {
-                            position: "top-center",
-                            autoClose: 3000,
-                            className: 'custom-toast',
-                          });
-                        } else {
+              <div className="space-y-2">
+                {stockIssues.length > 0 ? (
+                  <>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsLoading(true);
                           setStockIssues([]);
-                          toast.success("Your cart is ready for checkout!", {
+                          await fetchCartData();
+                          const stockValidation = await validateStock();
+
+                          if (!stockValidation.valid) {
+                            setStockIssues(stockValidation.issues);
+                            toast.info("Stock check complete. Please review your cart.", {
+                              position: "top-center",
+                              autoClose: 3000,
+                              className: 'custom-toast',
+                            });
+                          } else {
+                            setStockIssues([]);
+                            toast.success("Your cart is ready for checkout!", {
+                              position: "top-center",
+                              autoClose: 3000,
+                              className: 'custom-toast',
+                            });
+                          }
+                        } catch (error) {
+                          console.error("Error refreshing cart:", error);
+                          toast.error("Failed to refresh cart. Please try again.", {
                             position: "top-center",
                             autoClose: 3000,
                             className: 'custom-toast',
                           });
+                        } finally {
+                          setIsLoading(false);
                         }
-                      } catch (error) {
-                        console.error("Error refreshing cart:", error);
-                        toast.error("Failed to refresh cart. Please try again.", {
-                          position: "top-center",
-                          autoClose: 3000,
-                          className: 'custom-toast',
-                        });
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    className="w-full flex items-center justify-center bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg text-lg transition-colors"
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Refreshing...
-                      </span>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh Cart
-                      </>
-                    )}
-                  </button>
+                      }}
+                      className="w-full flex items-center justify-center bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg text-lg transition-colors"
+                    >
+                      {isLoading ? (
+                        <span className="flex items-center">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Refreshing...
+                        </span>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh Cart
+                        </>
+                      )}
+                    </button>
 
+                    <button
+                      disabled
+                      className="w-full bg-gray-400 cursor-not-allowed text-white py-3 rounded-lg text-lg"
+                    >
+                      Proceed to Checkout
+                    </button>
+
+                    <p className="text-red-500 text-sm mt-1 text-center">
+                      Please resolve stock issues before checkout
+                    </p>
+                  </>
+                ) : (
                   <button
-                    disabled
-                    className="w-full bg-gray-400 cursor-not-allowed text-white py-3 rounded-lg text-lg"
+                    onClick={handleProceedToCheckout}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg text-lg transition-colors"
                   >
                     Proceed to Checkout
                   </button>
-
-                  <p className="text-red-500 text-sm mt-1 text-center">
-                    Please resolve stock issues before checkout
-                  </p>
-                </>
-              ) : (
-                <button
-                  onClick={handleProceedToCheckout}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg text-lg transition-colors"
-                >
-                  Proceed to Checkout
-                </button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
           </div>
         </>
       )}
 
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity ${
-          isDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity ${isDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsDrawerOpen(false)}
       />
 
       {checkoutStep === 'shipping' && (
         <div
-          className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-6 shadow-lg transform transition-transform duration-300 ease-in-out ${
-            isDrawerOpen ? 'translate-y-0' : 'translate-y-full'
-          }`}
+          className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-6 shadow-lg transform transition-transform duration-300 ease-in-out ${isDrawerOpen ? 'translate-y-0' : 'translate-y-full'
+            }`}
           style={{ height: '80vh', overflowY: 'auto' }}
         >
           <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
@@ -1393,9 +1391,8 @@ const CartPage: React.FC = () => {
                 name="name"
                 value={shippingDetails.name}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  error && !shippingDetails.name ? 'border-red-500' : ''
-                }`}
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${error && !shippingDetails.name ? 'border-red-500' : ''
+                  }`}
                 required
               />
             </div>
@@ -1407,9 +1404,8 @@ const CartPage: React.FC = () => {
                 name="address"
                 value={shippingDetails.address}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  error && !shippingDetails.address ? 'border-red-500' : ''
-                }`}
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${error && !shippingDetails.address ? 'border-red-500' : ''
+                  }`}
                 required
               />
             </div>
@@ -1421,9 +1417,8 @@ const CartPage: React.FC = () => {
                 name="pinCode"
                 value={shippingDetails.pinCode}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  error && !shippingDetails.pinCode ? 'border-red-500' : ''
-                }`}
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${error && !shippingDetails.pinCode ? 'border-red-500' : ''
+                  }`}
                 required
                 maxLength={6}
                 pattern="[0-9]{6}"
@@ -1437,9 +1432,8 @@ const CartPage: React.FC = () => {
                 name="city"
                 value={shippingDetails.city}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  error && !shippingDetails.city ? 'border-red-500' : ''
-                }`}
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${error && !shippingDetails.city ? 'border-red-500' : ''
+                  }`}
                 required
               />
             </div>
@@ -1451,9 +1445,8 @@ const CartPage: React.FC = () => {
                 name="state"
                 value={shippingDetails.state}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  error && !shippingDetails.state ? 'border-red-500' : ''
-                }`}
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${error && !shippingDetails.state ? 'border-red-500' : ''
+                  }`}
                 required
               />
             </div>
@@ -1476,9 +1469,8 @@ const CartPage: React.FC = () => {
                 name="phoneNumber"
                 value={shippingDetails.phoneNumber}
                 onChange={handleInputChange}
-                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  error && !shippingDetails.phoneNumber ? 'border-red-500' : ''
-                }`}
+                className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${error && !shippingDetails.phoneNumber ? 'border-red-500' : ''
+                  }`}
                 required
               />
             </div>
@@ -1521,7 +1513,7 @@ const CartPage: React.FC = () => {
                   {!shippingDetails.state && (
                     <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                       <p className="text-sm text-yellow-800">
-                        Please enter your state to see available shipping options 
+                        Please enter your state to see available shipping options
                       </p>
                     </div>
                   )}
@@ -1607,9 +1599,8 @@ const CartPage: React.FC = () => {
 
       {checkoutStep === 'terms' && (
         <div
-          className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-6 shadow-lg transform transition-transform duration-300 ease-in-out ${
-            isDrawerOpen ? 'translate-y-0' : 'translate-y-full'
-          }`}
+          className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-6 shadow-lg transform transition-transform duration-300 ease-in-out ${isDrawerOpen ? 'translate-y-0' : 'translate-y-full'
+            }`}
           style={{ height: '80vh', overflowY: 'auto' }}
         >
           <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
@@ -1657,9 +1648,8 @@ const CartPage: React.FC = () => {
 
       {checkoutStep === 'payment' && (
         <div
-          className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-6 shadow-lg transform transition-transform duration-300 ease-in-out ${
-            isDrawerOpen ? 'translate-y-0' : 'translate-y-full'
-          }`}
+          className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-6 shadow-lg transform transition-transform duration-300 ease-in-out ${isDrawerOpen ? 'translate-y-0' : 'translate-y-full'
+            }`}
           style={{ height: '85vh', overflowY: 'auto' }}
         >
           <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
@@ -1899,11 +1889,10 @@ const CartPage: React.FC = () => {
               <button
                 onClick={initiateRazorpayPayment}
                 disabled={stockValidationInProgress}
-                className={`w-full ${
-                  stockValidationInProgress
+                className={`w-full ${stockValidationInProgress
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-orange-600 hover:bg-orange-700'
-                } text-white py-3 rounded-md text-lg transition-colors`}
+                  } text-white py-3 rounded-md text-lg transition-colors`}
               >
                 {stockValidationInProgress ? (
                   <span className="flex items-center justify-center">

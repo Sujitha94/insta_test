@@ -118,7 +118,7 @@ export default function WebsiteUrlConfiguration() {
 
     try {
       await axios.post(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/urlconfigurationroute/storeCredentials',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/urlconfigurationroute/storeCredentials',
         { websites, tenentId }
       );
       alert('Website credentials have been saved!');
@@ -174,21 +174,19 @@ export default function WebsiteUrlConfiguration() {
                 <div className="flex gap-1 flex-wrap p-1 bg-slate-200 rounded-lg w-fit">
                   <button
                     onClick={() => handleTypeChange(website.id, 'shopify')}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
-                      website.type === 'shopify'
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${website.type === 'shopify'
                         ? 'bg-white text-orange-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-800'
-                    }`}
+                      }`}
                   >
                     Shopify
                   </button>
                   <button
                     onClick={() => handleTypeChange(website.id, 'woocommerce')}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
-                      website.type === 'woocommerce'
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${website.type === 'woocommerce'
                         ? 'bg-white text-orange-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-800'
-                    }`}
+                      }`}
                   >
                     WooCommerce
                   </button>

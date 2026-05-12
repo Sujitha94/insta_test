@@ -133,7 +133,7 @@ const {
 const config = require("../services/config");
 const appUrl =
   process.env.APP_URL ||
-  "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+  "https://snaking-outhouse-oppose.ngrok-free.dev";
 const regex = /\w+/g;
 const { Worker } = require("worker_threads");
 const { clients } = require("./messageRoutes");
@@ -637,7 +637,7 @@ class RateLimiter {
     this.platformApiCalls.forEach((data, key) => {
       console.log(
         `  🌐 Platform API ${key}: ${data.timestamps.length}/${data.limit ||
-          200}/hour`,
+        200}/hour`,
       );
     });
 
@@ -1495,8 +1495,7 @@ async function processUserMessage({
 
     // Continue with existing logic
     console.log(
-      `🔍 DEBUG: ${
-        user1 ? "Existing user" : "New user without chatflow"
+      `🔍 DEBUG: ${user1 ? "Existing user" : "New user without chatflow"
       }, proceeding with standard logic...`,
     );
 
@@ -3630,7 +3629,7 @@ router.post("/webhook", async (req, res) => {
               webhookEvent.entry[0].messaging[0].message &&
               webhookEvent.entry[0].messaging[0].message.attachments &&
               webhookEvent.entry[0].messaging[0].message.attachments[0].type ===
-                "audio"
+              "audio"
             ) {
               await handleInstagramAudioMessage(webhookEvent);
             }
@@ -5093,14 +5092,14 @@ async function sendInstagramStoryCarouselMessage(
         imageUrl: element.image_url || "",
         buttons: Array.isArray(element.buttons)
           ? element.buttons.map((button) => ({
-              type:
-                button.type === "web_url"
-                  ? "web_url"
-                  : button.type || "web_url",
-              title: button.title || "",
-              url: button.url || "",
-              payload: button.payload || "",
-            }))
+            type:
+              button.type === "web_url"
+                ? "web_url"
+                : button.type || "web_url",
+            title: button.title || "",
+            url: button.url || "",
+            payload: button.payload || "",
+          }))
           : [],
       }));
 
@@ -5721,10 +5720,10 @@ async function handlePayload(
         }
 
         let productcatalogurl =
-          "https://inocencia-shiftiest-nonodorously.ngrok-free.dev/productcatalog";
+          "https://snaking-outhouse-oppose.ngrok-free.dev/productcatalog";
         if (catalogtype === "size-variation") {
           productcatalogurl =
-            "https://inocencia-shiftiest-nonodorously.ngrok-free.dev/productcatalogsize";
+            "https://snaking-outhouse-oppose.ngrok-free.dev/productcatalogsize";
         }
 
         const firstresponse = {
@@ -6532,8 +6531,8 @@ async function handleQuickReply(webhookEvent) {
           // Generate pricing details
           const priceList = Array.isArray(productDetails?.units)
             ? productDetails.units
-                .map((unit) => `${unit.unit}: ₹${unit.price}`)
-                .join("\n")
+              .map((unit) => `${unit.unit}: ₹${unit.price}`)
+              .join("\n")
             : "No pricing details available.";
 
           // Return the product with enriched details AND the buttons directly
@@ -7193,8 +7192,7 @@ async function findOrderInWooCommerce(phoneNumber, wooCreds) {
 
       console.log(
         `[WooCommerce] Order #${order.id}: Phone match: ${orderPhone ===
-          normalizedSearchPhone}, Has payment: ${hasPaymentData}, Status: ${
-          order.status
+        normalizedSearchPhone}, Has payment: ${hasPaymentData}, Status: ${order.status
         }`,
       );
 
@@ -8158,11 +8156,9 @@ async function getGptResponse(userInput, tenentId, senderID) {
         const top = result.data.slice(0, 5);
         let out = `🛍️ Found ${result.data.length} product(s) for “${args.productName}”:\n\n`;
         top.forEach((p, i) => {
-          out += `${i + 1}. ${p.name}\n   💰 Price: ${
-            p.price ? `₹${p.price}` : "—"
-          }\n   📦 Stock: ${
-            p.stock_status === "instock" ? "✅ In Stock" : "❌ Out of Stock"
-          }\n   🔗 ${p.permalink}\n\n`;
+          out += `${i + 1}. ${p.name}\n   💰 Price: ${p.price ? `₹${p.price}` : "—"
+            }\n   📦 Stock: ${p.stock_status === "instock" ? "✅ In Stock" : "❌ Out of Stock"
+            }\n   🔗 ${p.permalink}\n\n`;
         });
         if (result.data.length > 5)
           out += `...and ${result.data.length - 5} more.\n`;

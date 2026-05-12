@@ -9,7 +9,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const router = express.Router();
 const LongToken = require("../models/LongToken");
-const BASE_URL = "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+const BASE_URL = "https://snaking-outhouse-oppose.ngrok-free.dev";
 const mongoose = require("mongoose");
 // SMS Configuration
 const SMS_CONFIG = {
@@ -55,7 +55,7 @@ async function sendInstagramMessage(
 
     throw new Error(
       `Instagram message failed: ${error.response?.data?.error?.message ||
-        error.message}`,
+      error.message}`,
     );
   }
 }

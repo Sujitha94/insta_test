@@ -16,7 +16,7 @@ const cors = require("cors");
 const WebSocket = require("ws");
 const appUrl =
   process.env.APP_URL ||
-  "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+  "https://snaking-outhouse-oppose.ngrok-free.dev";
 const WS_SECRET_KEY = process.env.WS_SECRET_KEY;
 const jwt = require("jsonwebtoken");
 const broadcastedModeUpdates = new Set();
@@ -691,8 +691,8 @@ const initializeWebSocket = (server) => {
                   const agentId = humanAgentSenderIds.includes(senderId)
                     ? senderId
                     : humanAgentSenderIds.includes(recipientId)
-                    ? recipientId
-                    : null;
+                      ? recipientId
+                      : null;
 
                   if (!agentId) {
                     omittedContacts.push({
@@ -813,8 +813,8 @@ const initializeWebSocket = (server) => {
                       const agentId = humanAgentSenderIds.includes(senderId)
                         ? senderId
                         : humanAgentSenderIds.includes(recipientId)
-                        ? recipientId
-                        : null;
+                          ? recipientId
+                          : null;
 
                       if (!agentId) return null;
 
@@ -940,10 +940,10 @@ const initializeWebSocket = (server) => {
                       createdAt: contact.createdAt,
                       lastMessage: message
                         ? {
-                            message: message.message,
-                            response: message.response,
-                            Timestamp: message.Timestamp,
-                          }
+                          message: message.message,
+                          response: message.response,
+                          Timestamp: message.Timestamp,
+                        }
                         : null,
                     },
                   }),
@@ -1046,11 +1046,11 @@ const initializeWebSocket = (server) => {
                 chatMode: user.chatMode || "chat",
                 lastMessage: messageMap.has(user.senderId)
                   ? {
-                      message: messageMap.get(user.senderId).message,
-                      response: messageMap.get(user.senderId).response,
-                      Timestamp: messageMap.get(user.senderId).Timestamp,
-                      messageType: messageMap.get(user.senderId).messageType,
-                    }
+                    message: messageMap.get(user.senderId).message,
+                    response: messageMap.get(user.senderId).response,
+                    Timestamp: messageMap.get(user.senderId).Timestamp,
+                    messageType: messageMap.get(user.senderId).messageType,
+                  }
                   : null,
               }));
 

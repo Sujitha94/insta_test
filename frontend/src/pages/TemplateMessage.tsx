@@ -60,12 +60,12 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
   const updateTemplate = (index: number, field: keyof MessageTemplate, value: any) => {
     const newTemplates = [...templates];
     newTemplates[index] = { ...newTemplates[index], [field]: value };
-    
+
     // If changing message type to text, initialize text field if it doesn't exist
     if (field === 'messageType' && value === 'text' && !newTemplates[index].text) {
       newTemplates[index].text = '';
     }
-    
+
     // If changing message type to carousel, initialize carousel items if they don't exist
     if (field === 'messageType' && value === 'carousel' && !newTemplates[index].carouselItems) {
       newTemplates[index].carouselItems = [{
@@ -79,7 +79,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
         }]
       }];
     }
-    
+
     setTemplates(newTemplates);
   };
 
@@ -88,7 +88,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
     if (!newTemplates[templateIndex].carouselItems) {
       newTemplates[templateIndex].carouselItems = [];
     }
-    
+
     newTemplates[templateIndex].carouselItems?.push({
       image: '',
       title: '',
@@ -99,7 +99,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
         buttonUrl: ''
       }]
     });
-    
+
     setTemplates(newTemplates);
   };
 
@@ -114,9 +114,9 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
   const updateCarouselItem = (templateIndex: number, itemIndex: number, field: keyof CarouselItem, value: any) => {
     const newTemplates = [...templates];
     if (newTemplates[templateIndex].carouselItems) {
-      newTemplates[templateIndex].carouselItems![itemIndex] = { 
-        ...newTemplates[templateIndex].carouselItems![itemIndex], 
-        [field]: value 
+      newTemplates[templateIndex].carouselItems![itemIndex] = {
+        ...newTemplates[templateIndex].carouselItems![itemIndex],
+        [field]: value
       };
       setTemplates(newTemplates);
     }
@@ -136,9 +136,9 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
 
   const removeButton = (templateIndex: number, itemIndex: number, buttonIndex: number) => {
     const newTemplates = [...templates];
-    if (newTemplates[templateIndex].carouselItems && 
-        newTemplates[templateIndex].carouselItems![itemIndex].buttons.length > 1) {
-      newTemplates[templateIndex].carouselItems![itemIndex].buttons = 
+    if (newTemplates[templateIndex].carouselItems &&
+      newTemplates[templateIndex].carouselItems![itemIndex].buttons.length > 1) {
+      newTemplates[templateIndex].carouselItems![itemIndex].buttons =
         newTemplates[templateIndex].carouselItems![itemIndex].buttons.filter((_, i) => i !== buttonIndex);
       setTemplates(newTemplates);
     }
@@ -147,11 +147,11 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
   const updateButton = (templateIndex: number, itemIndex: number, buttonIndex: number, field: keyof ButtonOption, value: any) => {
     const newTemplates = [...templates];
     if (newTemplates[templateIndex].carouselItems) {
-      newTemplates[templateIndex].carouselItems![itemIndex].buttons[buttonIndex] = { 
-        ...newTemplates[templateIndex].carouselItems![itemIndex].buttons[buttonIndex], 
-        [field]: value 
+      newTemplates[templateIndex].carouselItems![itemIndex].buttons[buttonIndex] = {
+        ...newTemplates[templateIndex].carouselItems![itemIndex].buttons[buttonIndex],
+        [field]: value
       };
-      
+
       // If changing button type, initialize the correct field
       if (field === 'buttonType') {
         if (value === 'url') {
@@ -162,7 +162,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
           delete newTemplates[templateIndex].carouselItems![itemIndex].buttons[buttonIndex].buttonUrl;
         }
       }
-      
+
       setTemplates(newTemplates);
     }
   };
@@ -176,11 +176,11 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
       if (!template.title || template.title.trim() === '' || !template.payload || template.payload.trim() === '') {
         return false;
       }
-      
+
       if (template.messageType === 'text') {
         return template.text && template.text.trim() !== '';
       } else if (template.messageType === 'carousel') {
-        return template.carouselItems && template.carouselItems.every(item => 
+        return template.carouselItems && template.carouselItems.every(item =>
           item.image && item.title && item.subtitle && item.buttons.every(button => {
             if (button.buttonType === 'url') {
               return button.buttonText && button.buttonUrl;
@@ -205,7 +205,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
     try {
       const tenentId = localStorage.getItem('tenentid');
       const response = await axios.post(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/templatemessageroute/message-templates',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/templatemessageroute/message-templates',
         {
           tenentId,
           templates
@@ -218,7 +218,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
           title: "Success",
           text: "Message templates saved successfully!",
         });
-        
+
         // Reset form
         setTemplates([{
           title: '',
@@ -243,11 +243,11 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
       if (!template.title || template.title.trim() === '' || !template.payload || template.payload.trim() === '') {
         return false;
       }
-      
+
       if (template.messageType === 'text') {
         return template.text && template.text.trim() !== '';
       } else if (template.messageType === 'carousel') {
-        return template.carouselItems && template.carouselItems.every(item => 
+        return template.carouselItems && template.carouselItems.every(item =>
           item.image && item.title && item.subtitle && item.buttons.every(button => {
             if (button.buttonType === 'url') {
               return button.buttonText && button.buttonUrl;
@@ -272,7 +272,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
     try {
       const tenentId = localStorage.getItem('tenentid');
       const response = await axios.post(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/templatemessageroute/message-templates/update',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/templatemessageroute/message-templates/update',
         {
           tenentId,
           templates
@@ -297,7 +297,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 w-full">
-      
+
       <div className="w-full max-w-4xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg shadow-md p-6 border border-orange-100">
@@ -327,7 +327,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
                     </button>
                   )}
                 </div>
-                
+
                 {/* Added Title Input Field */}
                 <div className="mb-4">
                   <label className="block text-gray-700 text-base font-medium mb-2">Title</label>
@@ -340,7 +340,7 @@ const TemplateMessage: React.FC<TemplateMessageProps> = ({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-800 placeholder-gray-400 focus:ring-2 focus:border-orange-500 focus:outline-none focus:ring-orange-500"
                   />
                 </div>
-                
+
                 {/* Payload Input Field */}
                 <div className="mb-4">
                   <label className="block text-gray-700 text-base font-medium mb-2">Payload</label>

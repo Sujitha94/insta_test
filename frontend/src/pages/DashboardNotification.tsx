@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const BASE_URL = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+const BASE_URL = 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
 interface Notification {
   _id: string;
@@ -249,11 +249,10 @@ export default function DashboardNotification() {
                   <button
                     onClick={() => handleToggle(notif._id)}
                     title={notif.isActive ? 'Active – click to deactivate' : 'Inactive – click to activate'}
-                    className={`mt-1 w-3 h-3 rounded-full flex-shrink-0 border-2 transition-colors ${
-                      notif.isActive
+                    className={`mt-1 w-3 h-3 rounded-full flex-shrink-0 border-2 transition-colors ${notif.isActive
                         ? 'bg-green-500 border-green-500'
                         : 'bg-gray-300 border-gray-300'
-                    }`}
+                      }`}
                   />
 
                   {/* Message / Edit Input */}

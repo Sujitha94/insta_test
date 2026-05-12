@@ -6,26 +6,26 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 interface Product {
-    sku: string;
-    productName: string;
-    productPhotoUrl: string;
-    productType: string;
-    productDescription?: string; // Added product description field
-    units: { 
-      unit: string; 
-      price: string | number; 
-    }[];
-    quantityInStock?: number;
-    threshold?: number;
-    lastRestocked?: string;
+  sku: string;
+  productName: string;
+  productPhotoUrl: string;
+  productType: string;
+  productDescription?: string; // Added product description field
+  units: {
+    unit: string;
+    price: string | number;
+  }[];
+  quantityInStock?: number;
+  threshold?: number;
+  lastRestocked?: string;
 }
 
 interface CartItem {
-    sku: string;
-    productName: string;
-    quantity: number;
-    price: number;
-    productPhotoUrl?: string;
+  sku: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  productPhotoUrl?: string;
 }
 
 interface ProductCatalogProps {
@@ -47,11 +47,10 @@ const CategoryGrid: React.FC<{
           <button
             key={category}
             onClick={() => onCategorySelect(category)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
-              selectedCategory === category
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${selectedCategory === category
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+              }`}
           >
             {category}
           </button>
@@ -72,16 +71,16 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   const [cartItemCount, setCartItemCount] = useState(0);
   const [showViewCart, setShowViewCart] = useState(false);
   const [cartItems, setCartItems] = useState<Map<string, number>>(new Map());
-  
+
   // Modal related states
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
+
   // Define appUrl using useMemo to prevent recreating on every render
   const appUrl = useMemo(() => {
-    return process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev' ;                              
+    return process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
   }, []);
-  
+
   // Create axios instance with useMemo
   const axiosInstance = useMemo(() => {
     return axios.create({
@@ -93,25 +92,25 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   const getSecurityToken = (): string => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('securityaccessToken');
-    console.log("tokenFromUrl",tokenFromUrl);
+    console.log("tokenFromUrl", tokenFromUrl);
     if (tokenFromUrl) {
       return tokenFromUrl;
     }
-    
+
     const tokenFromStorage = localStorage.getItem('securityaccessToken');
-    console.log("tokenFromStorage",tokenFromStorage);
+    console.log("tokenFromStorage", tokenFromStorage);
     return tokenFromStorage || '';
   };
-  
+
   // Get tenant ID - first try URL params, then localStorage
   const getTenantId = (): string => {
     const urlParams = new URLSearchParams(window.location.search);
     const tenantFromUrl = urlParams.get('tenentId');
-    
+
     if (tenantFromUrl) {
       return tenantFromUrl;
     }
-    
+
     const tenantFromStorage = localStorage.getItem('tenentId');
     return tenantFromStorage || '';
   };
@@ -129,10 +128,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
       setError('Missing authentication information');
       return;
     }
-    
+
     setTenentId(tenentIdValue);
     setSecurityAccessToken(securityTokenValue);
-      
+
     // Store in localStorage for future use
     localStorage.setItem('tenentId', tenentIdValue);
     localStorage.setItem('securityaccessToken', securityTokenValue);
@@ -143,9 +142,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   const fetchCartData = async () => {
     const currentToken = getSecurityToken();
     const currentTenantId = getTenantId();
-    
+
     if (!currentTenantId || !currentToken) return;
-    
+
     try {
       const response = await axiosInstance.get(`${appUrl}/api/cartroute/${currentToken}/${currentTenantId}`);
       console.log("response", response.data);
@@ -153,7 +152,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
         // Update total count
         setCartItemCount(response.data.items.length);
         setShowViewCart(response.data.items.length > 0);
-        
+
         // Create a map of sku -> quantity for each cart item
         const itemMap = new Map<string, number>();
         response.data.items.forEach((item: CartItem) => {
@@ -176,7 +175,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   // Fetch categories when tenentId is available
   useEffect(() => {
     if (!tenentId) return;
-    
+
     const fetchCategories = async () => {
       try {
         setIsLoading(true);
@@ -209,9 +208,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
       try {
         setIsLoading(true);
         const response = await axiosInstance.get(`${appUrl}/api/productroute/products`, {
-          params: { 
-            tenentId, 
-            productType: selectedCategory 
+          params: {
+            tenentId,
+            productType: selectedCategory
           }
         });
 
@@ -232,7 +231,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
   const handleAddToCart = async (sku: string) => {
     const currentToken = getSecurityToken();
     const currentTenantId = getTenantId();
-    
+
     if (!currentTenantId || !currentToken) {
       toast.error('Authentication required', {
         position: "top-center",
@@ -245,7 +244,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
       });
       return;
     }
-    
+
     try {
       const response = await axiosInstance.post(`${appUrl}/api/cartroute/add`, {
         securityAccessToken: currentToken,
@@ -253,7 +252,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
         sku,
         quantity: 1  // Add default quantity of 1
       });
-  
+
       if (response.data) {
         // Show success notification using toast
         const productName = response.data.cart?.items?.find((item: CartItem) => item.sku === sku)?.productName || 'Product';
@@ -266,17 +265,17 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
           draggable: true,
           className: 'custom-toast',
         });
-        
+
         // Update cart count and cartItems map from the response
         if (response.data.cart && Array.isArray(response.data.cart.items)) {
           const newCartItems = new Map(cartItems);
-          
+
           // Find the item that was just added/updated
           const updatedItem = response.data.cart.items.find((item: CartItem) => item.sku === sku);
           if (updatedItem) {
             newCartItems.set(sku, updatedItem.quantity);
           }
-          
+
           setCartItems(newCartItems);
           setCartItemCount(response.data.cart.items.length);
           setShowViewCart(response.data.cart.items.length > 0);
@@ -298,13 +297,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
       });
     }
   };
-  
+
   const handleUpdateQuantity = async (sku: string, newQuantity: number) => {
     const currentToken = getSecurityToken();
     const currentTenantId = getTenantId();
-    
+
     if (!currentTenantId || !currentToken || newQuantity < 0) return;
-    
+
     try {
       if (newQuantity === 0) {
         // Remove item if quantity is 0
@@ -315,13 +314,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
             sku
           }
         });
-        
+
         if (response.data) {
           // Update cart items state
           const newCartItems = new Map(cartItems);
           newCartItems.delete(sku);
           setCartItems(newCartItems);
-          
+
           // Update cart count
           if (response.data.cart && Array.isArray(response.data.cart.items)) {
             setCartItemCount(response.data.cart.items.length);
@@ -338,13 +337,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
           sku,
           quantity: newQuantity
         });
-        
+
         if (response.data) {
           // Update cart items state
           const newCartItems = new Map(cartItems);
           newCartItems.set(sku, newQuantity);
           setCartItems(newCartItems);
-          
+
           // Update cart count
           if (response.data.cart && Array.isArray(response.data.cart.items)) {
             setCartItemCount(response.data.cart.items.length);
@@ -426,29 +425,29 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
           transform: scale(1.05);
         }
       `}</style>
-      
+
       {/* Toast Container - this will render the toast notifications */}
       <ToastContainer />
-      
+
       {/* Header with cart icon */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Product Catalog</h1>
-        <Link 
+        <Link
           to={`/cart?tenentId=${tenentId}&securityaccessToken=${securityAccessToken}`}
           className="relative p-2"
         >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-7 w-7 text-gray-700" 
-            fill="none" 
-            viewBox="0 0 24 24" 
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-7 w-7 text-gray-700"
+            fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={1.5} 
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
           {cartItemCount > 0 && (
@@ -460,31 +459,31 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
       </div>
 
       {/* Category Grid Navigation */}
-      <CategoryGrid 
+      <CategoryGrid
         categories={categories}
         selectedCategory={selectedCategory}
         onCategorySelect={setSelectedCategory}
       />
 
-     {/* Product Grid - Updated to reduce spacing and show 2 products per row */}
-     <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
+      {/* Product Grid - Updated to reduce spacing and show 2 products per row */}
+      <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
         {products.map((product) => {
           // Check if product is out of stock
-          const isOutOfStock = !product.hasOwnProperty('quantityInStock') || 
-                              product.quantityInStock === 0;
-          
+          const isOutOfStock = !product.hasOwnProperty('quantityInStock') ||
+            product.quantityInStock === 0;
+
           // Check if product is already in cart
           const inCart = cartItems.has(product.sku);
           const quantity = inCart ? cartItems.get(product.sku) || 0 : 0;
-          
+
           return (
-            <div 
-              key={product.sku} 
+            <div
+              key={product.sku}
               className={`bg-white rounded-lg shadow-md overflow-hidden product-card ${isOutOfStock ? 'opacity-70' : ''}`}
             >
               <div className="relative">
-                <img 
-                  src={product.productPhotoUrl || `${appUrl}/default-product-image.jpg`} 
+                <img
+                  src={product.productPhotoUrl || `${appUrl}/default-product-image.jpg`}
                   alt={product.productName}
                   className="w-full h-40 object-cover product-image"
                   onError={(e) => {
@@ -492,7 +491,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                   }}
                   onClick={() => handleProductClick(product)}
                 />
-                
+
                 {/* Out of stock overlay */}
                 {isOutOfStock && (
                   <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
@@ -502,16 +501,16 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                   </div>
                 )}
               </div>
-              
+
               <div className="p-2">
-                <h3 
+                <h3
                   className="font-semibold text-sm mb-1 text-gray-800 leading-tight cursor-pointer hover:text-blue-600 min-h-10 flex items-start"
                   onClick={() => handleProductClick(product)}
                   style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
                 >
                   {product.productName}
                 </h3>
-                
+
                 {/* Price Options - Reduced spacing */}
                 <div className="mb-1">
                   {product.units && product.units.slice(0, 2).map((unit) => (
@@ -520,7 +519,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Stock status indication - Reduced height */}
                 <div className="h-4 mb-1 flex items-center">
                   {!isOutOfStock && product.quantityInStock && (
@@ -529,7 +528,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                     </div>
                   )}
                 </div>
-                
+
                 {/* Add to Cart / Quantity Control - Reduced height */}
                 {inCart ? (
                   <div className="flex items-center justify-between border border-gray-300 rounded-md overflow-hidden h-8">
@@ -559,11 +558,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                       e.stopPropagation();
                       handleAddToCart(product.sku);
                     }}
-                    className={`w-full h-8 rounded-md transition-colors text-sm font-medium ${
-                      isOutOfStock 
-                        ? 'bg-gray-400 cursor-not-allowed text-gray-100' 
+                    className={`w-full h-8 rounded-md transition-colors text-sm font-medium ${isOutOfStock
+                        ? 'bg-gray-400 cursor-not-allowed text-gray-100'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}
+                      }`}
                     disabled={isOutOfStock}
                   >
                     {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
@@ -584,18 +582,18 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
 
       {/* Product Details Modal */}
       {showModal && selectedProduct && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={closeModal}
         >
-          <div 
+          <div
             className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="flex justify-between items-center border-b p-4">
               <h3 className="text-xl font-semibold text-gray-900">Product Details</h3>
-              <button 
+              <button
                 onClick={closeModal}
                 className="text-gray-400 hover:text-gray-700 focus:outline-none transition-colors"
               >
@@ -604,14 +602,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                 </svg>
               </button>
             </div>
-            
+
             {/* Modal Body */}
             <div className="p-6">
               <div className="flex flex-col gap-4">
                 {/* Product Image */}
                 <div className="flex justify-center">
-                  <img 
-                    src={selectedProduct.productPhotoUrl || `${appUrl}/default-product-image.jpg`} 
+                  <img
+                    src={selectedProduct.productPhotoUrl || `${appUrl}/default-product-image.jpg`}
                     alt={selectedProduct.productName}
                     className="w-48 h-48 object-cover rounded-lg shadow-md"
                     onError={(e) => {
@@ -619,7 +617,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                     }}
                   />
                 </div>
-                
+
                 {/* Product Name and Price */}
                 <div className="bg-white-50 p-2 rounded-md border border-gray-200 max-w-sm">
                   <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -631,7 +629,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                       ₹{parseFloat(selectedProduct.units[0].price as string).toFixed(2)}
                     </div>
                   )}
-                </div>          
+                </div>
                 {/* Product Description Section */}
                 {selectedProduct?.productDescription && (
                   <div className="bg-white-50 p-4 rounded-lg border border-gray-200">
@@ -662,7 +660,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                     )}
                   </div>
                 </div>
-                
+
                 {/* Price Options Section */}
                 {selectedProduct.units && selectedProduct.units.length > 1 && (
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
@@ -677,7 +675,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                     </div>
                   </div>
                 )}
-                
+
                 {/* Stock Status */}
                 <div className="p-3 rounded-lg border">
                   <div className="flex items-center justify-center">
@@ -699,7 +697,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                   </div>
                 </div>
               </div>
-              
+
               {/* Add to Cart Button */}
               <div className="mt-6">
                 <button
@@ -707,11 +705,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ bypassTokenCheck = fals
                     handleAddToCart(selectedProduct.sku);
                     closeModal();
                   }}
-                  className={`w-full py-3 rounded-md transition-colors text-lg font-medium ${
-                    !selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0
+                  className={`w-full py-3 rounded-md transition-colors text-lg font-medium ${!selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0
                       ? 'bg-gray-400 cursor-not-allowed text-gray-100'
                       : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
-                  }`}
+                    }`}
                   disabled={!selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0}
                 >
                   {!selectedProduct.quantityInStock || selectedProduct.quantityInStock === 0 ? 'Out of Stock' : 'Add to Cart'}

@@ -48,8 +48,8 @@ const InstagramProfilePic = ({
               strokeLinejoin="round"
               className="w-3/5 h-3/5 text-gray-400"
             >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
             </svg>
           </div>
         )}
@@ -588,7 +588,7 @@ export default function LiveChat() {
     wsService.onConnect(handleConnect);
 
     if (!wsService.isConnected()) {
-      const appUrl = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+      const appUrl = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
       wsService.connect(appUrl);
     }
 
@@ -1367,8 +1367,8 @@ export default function LiveChat() {
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                          <line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                          <circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                          <line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
                         </svg>
                       </button>
                       {showEmojiPicker && (
@@ -1391,8 +1391,8 @@ export default function LiveChat() {
                     {/* Image Attachment */}
                     <label htmlFor="image-upload" className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer mx-1 flex-shrink-0">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/>
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                       </svg>
                       <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
@@ -1405,7 +1405,7 @@ export default function LiveChat() {
                         disabled={sendingMessage}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                         </svg>
                       </button>
                     )}
@@ -1415,11 +1415,10 @@ export default function LiveChat() {
                   <Button
                     onClick={handleSend}
                     disabled={sendingMessage || (!newMessage.trim() && !uploadingMedia)}
-                    className={`h-[50px] w-[50px] flex-shrink-0 rounded-xl flex items-center justify-center transition-all shadow-md ${
-                      newMessage.trim()
+                    className={`h-[50px] w-[50px] flex-shrink-0 rounded-xl flex items-center justify-center transition-all shadow-md ${newMessage.trim()
                         ? 'bg-gradient-to-r from-red-600 to-orange-400 hover:shadow-lg hover:opacity-90'
                         : 'bg-gray-200 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     {sendingMessage
                       ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />

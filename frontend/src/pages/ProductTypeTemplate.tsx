@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import {  Save, Tag } from 'lucide-react';
+import { Save, Tag } from 'lucide-react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
@@ -46,7 +46,7 @@ const ProductTypeTemplate = () => {
     try {
       const tenentId = localStorage.getItem('tenentid');
       const response = await axios.post(
-        `https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/templatesroute/product-type`,
+        `https://snaking-outhouse-oppose.ngrok-free.dev/api/templatesroute/product-type`,
         { tenentId, productTypes }
       );
       if (response.data) {

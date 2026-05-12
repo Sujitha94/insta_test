@@ -34,11 +34,11 @@ const ProductInventorySize: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-    
+
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 768);
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -46,22 +46,22 @@ const ProductInventorySize: React.FC = () => {
   // Function to calculate overall status based on units' stock
   const calculateOverallStatus = (units: Unit[]): 'In Stock' | 'Low Stock' | 'Out of Stock' | 'N/A' => {
     if (!units || units.length === 0) return 'N/A';
-    
+
     const totalStock = units.reduce((sum, unit) => sum + unit.quantityInStock, 0);
     if (totalStock <= 0) return 'Out of Stock';
     if (totalStock <= 5) return 'Low Stock'; // Example threshold for low stock
     return 'In Stock';
   };
-  
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const tenentId = localStorage.getItem('tenentid');
-      
-      const response = await axios.get('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventorysizeroute/inventory', {                                                                                         
+
+      const response = await axios.get('https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventorysizeroute/inventory', {
         params: { tenentId }
       });
-      
+
       if (response.data && response.data.products) {
         const transformedProducts = response.data.products.map((item: any) => ({
           id: item._id || item.id,
@@ -73,7 +73,7 @@ const ProductInventorySize: React.FC = () => {
           imageUrl: item.productPhotoUrl || '',
           productDescription: item.productDescription || ''
         }));
-        
+
         setProducts(transformedProducts);
         // Apply current search and sort after fetching
         applyFiltersAndSorting(transformedProducts, searchTerm, sortField, sortDirection);
@@ -85,7 +85,7 @@ const ProductInventorySize: React.FC = () => {
         title: "Failed to Load Inventory",
         text: "Could not fetch products from the server. Please try again later.",
       });
-      
+
       setProducts([]);
       setFilteredProducts([]);
     } finally {
@@ -94,17 +94,17 @@ const ProductInventorySize: React.FC = () => {
   };
 
   const applyFiltersAndSorting = (
-    currentProducts: ProductInventoryItem[], 
-    term: string, 
-    field: keyof ProductInventoryItem | '', 
+    currentProducts: ProductInventoryItem[],
+    term: string,
+    field: keyof ProductInventoryItem | '',
     direction: 'asc' | 'desc'
   ) => {
     let tempProducts = [...currentProducts];
 
     // Apply search filter
     if (term) {
-      tempProducts = tempProducts.filter(product => 
-        product.productName.toLowerCase().includes(term.toLowerCase()) || 
+      tempProducts = tempProducts.filter(product =>
+        product.productName.toLowerCase().includes(term.toLowerCase()) ||
         product.sku.toLowerCase().includes(term.toLowerCase())
       );
     }
@@ -119,10 +119,10 @@ const ProductInventorySize: React.FC = () => {
           if (unitA > unitB) return direction === 'asc' ? 1 : -1;
           return 0;
         }
-        
+
         const valueA = String(a[field]).toLowerCase();
         const valueB = String(b[field]).toLowerCase();
-        
+
         if (valueA < valueB) return direction === 'asc' ? -1 : 1;
         if (valueA > valueB) return direction === 'asc' ? 1 : -1;
         return 0;
@@ -130,24 +130,24 @@ const ProductInventorySize: React.FC = () => {
     }
     setFilteredProducts(tempProducts);
   };
-  
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
     applyFiltersAndSorting(products, term, sortField, sortDirection);
   };
-  
+
   const handleSort = (field: keyof ProductInventoryItem) => {
     const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
     setSortField(field);
     setSortDirection(newDirection);
     applyFiltersAndSorting(products, searchTerm, field, newDirection);
   };
-  
+
   const handleEdit = (product: ProductInventoryItem) => {
-    setEditingProduct({...product});
+    setEditingProduct({ ...product });
   };
-  
+
   const handleUpdateProductField = (field: keyof ProductInventoryItem, value: any) => {
     if (editingProduct) {
       setEditingProduct({
@@ -180,7 +180,7 @@ const ProductInventorySize: React.FC = () => {
         ...editingProduct,
         units: newUnits,
         // Update overall status immediately in the edit form
-        overallStatus: calculateOverallStatus(newUnits) 
+        overallStatus: calculateOverallStatus(newUnits)
       });
     }
   };
@@ -189,11 +189,11 @@ const ProductInventorySize: React.FC = () => {
     if (editingProduct) {
       setEditingProduct({
         ...editingProduct,
-        units: [...editingProduct.units, { 
-          unit: '', 
-          price: '', 
+        units: [...editingProduct.units, {
+          unit: '',
+          price: '',
           quantityInStock: 0,
-          sku: '' 
+          sku: ''
         }]
       });
     }
@@ -229,15 +229,15 @@ const ProductInventorySize: React.FC = () => {
         try {
           const quantity = parseInt(result.value);
           const tenentId = localStorage.getItem('tenentid');
-          
+
           const response = await axios.post(
-            `https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventorysizeroute/inventory/${productId}/units/${unitIndex}/restock`,
+            `https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventorysizeroute/inventory/${productId}/units/${unitIndex}/restock`,
             {
               tenentId,
               addQuantity: quantity
             }
           );
-          
+
           if (response.data) {
             // OPTIMIZATION: Update state directly instead of refetching all products
             setProducts(prevProducts => prevProducts.map(product => {
@@ -297,7 +297,7 @@ const ProductInventorySize: React.FC = () => {
                 };
               });
             }
-            
+
             Swal.fire(
               'Restocked!',
               `Added ${quantity} items to ${unitName}. New stock: ${response.data.newQuantityInStock}.`,
@@ -315,7 +315,7 @@ const ProductInventorySize: React.FC = () => {
       }
     });
   };
-  
+
   const saveEditedProduct = async () => {
     if (!editingProduct) return;
 
@@ -328,10 +328,10 @@ const ProductInventorySize: React.FC = () => {
       });
       return;
     }
-    
+
     try {
       const tenentId = localStorage.getItem('tenentid');
-      
+
       const productData = {
         id: editingProduct.id,
         tenentId,
@@ -340,12 +340,12 @@ const ProductInventorySize: React.FC = () => {
         units: editingProduct.units,
         productDescription: editingProduct.productDescription
       };
-      
+
       const response = await axios.put(
-        `https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventorysizeroute/inventory/${editingProduct.id}`,
+        `https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventorysizeroute/inventory/${editingProduct.id}`,
         productData
       );
-      
+
       if (response.data) {
         // OPTIMIZATION: Update the specific product in state instead of refetching all
         const updatedProduct = {
@@ -353,18 +353,18 @@ const ProductInventorySize: React.FC = () => {
           // Ensure overallStatus is recalculated for the updated product
           overallStatus: calculateOverallStatus(editingProduct.units),
           // Assuming the API might return an updated productPhotoUrl if changed, otherwise keep existing
-          imageUrl: response.data.productPhotoUrl || editingProduct.imageUrl 
+          imageUrl: response.data.productPhotoUrl || editingProduct.imageUrl
         };
 
-        setProducts(prevProducts => 
+        setProducts(prevProducts =>
           prevProducts.map(p => (p.id === updatedProduct.id ? updatedProduct : p))
         );
-        setFilteredProducts(prevFilteredProducts => 
+        setFilteredProducts(prevFilteredProducts =>
           prevFilteredProducts.map(p => (p.id === updatedProduct.id ? updatedProduct : p))
         );
-        
+
         setEditingProduct(null);
-        
+
         Swal.fire({
           icon: "success",
           title: "Success",
@@ -380,7 +380,7 @@ const ProductInventorySize: React.FC = () => {
       });
     }
   };
-  
+
   const handleDelete = async (productName: string) => {
     Swal.fire({
       title: 'Are you sure?',
@@ -394,14 +394,14 @@ const ProductInventorySize: React.FC = () => {
       if (result.isConfirmed) {
         try {
           const tenentId = localStorage.getItem('tenentid');
-          await axios.delete(`https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventorysizeroute/inventory/${productName}`, {                                                                                                                                                                                    
+          await axios.delete(`https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventorysizeroute/inventory/${productName}`, {
             params: { tenentId }
           });
-          
+
           const updatedProducts = products.filter(product => product.productName !== productName);
           setProducts(updatedProducts);
           setFilteredProducts(updatedProducts); // Ensure filtered list is also updated
-          
+
           Swal.fire(
             'Deleted!',
             'The product has been removed from inventory.',
@@ -418,7 +418,7 @@ const ProductInventorySize: React.FC = () => {
       }
     });
   };
-  
+
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'In Stock':
@@ -437,7 +437,7 @@ const ProductInventorySize: React.FC = () => {
     if (quantity <= 5) return 'bg-yellow-100 text-yellow-700'; // Low stock for individual units
     return 'bg-green-100 text-green-700';
   };
-  
+
   const handleAddNewProduct = () => {
     window.location.href = '/product-details-template';
   };
@@ -449,10 +449,10 @@ const ProductInventorySize: React.FC = () => {
           <div className="h-12 w-12 flex-shrink-0">
             <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center border-2 border-orange-200">
               {product.imageUrl ? (
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.productName} 
-                  className="h-12 w-12 rounded-full object-cover" 
+                <img
+                  src={product.imageUrl}
+                  alt={product.productName}
+                  className="h-12 w-12 rounded-full object-cover"
                 />
               ) : (
                 <span className="text-orange-600 font-semibold">{product.productName.substring(0, 2).toUpperCase()}</span>
@@ -461,7 +461,7 @@ const ProductInventorySize: React.FC = () => {
           </div>
           <div className="text-base font-bold text-slate-900">{product.productName}</div>
         </div>
-        
+
         <div className="grid grid-cols-1 gap-2 text-sm text-slate-700 mb-4">
           <div><span className="font-medium">SKU:</span> {product.sku}</div>
           <div>
@@ -489,13 +489,13 @@ const ProductInventorySize: React.FC = () => {
             ) : 'N/A'}
           </div>
         </div>
-        
+
         <div className="flex justify-between items-center mb-4">
           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(product.overallStatus)} text-white`}>
             {product.overallStatus}
           </span>
         </div>
-        
+
         <div className="flex justify-between gap-2">
           <button
             onClick={() => handleEdit(product)}
@@ -513,73 +513,73 @@ const ProductInventorySize: React.FC = () => {
       </div>
     );
   };
-  
+
   const renderProductListView = () => {
     return (
-        <div className="space-y-3">
-            {filteredProducts.map(product => (
-                <div key={product.id} className="bg-white rounded-xl shadow-lg p-4 grid grid-cols-1 md:grid-cols-[2fr,1fr,3fr,1fr,1fr] items-center gap-4 transition-shadow hover:shadow-md">
-                    
-                    {/* Column 1: Product Info */}
-                    <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 flex-shrink-0">
-                            {product.imageUrl ? (
-                                <img src={product.imageUrl} alt={product.productName} className="h-12 w-12 rounded-full object-cover"/>
-                            ) : (
-                                <div className="h-12 w-12 rounded-full bg-orange-50 flex items-center justify-center">
-                                    <span className="text-orange-600 font-semibold">{product.productName.substring(0, 2).toUpperCase()}</span>
-                                </div>
-                            )}
-                        </div>
-                        <span className="font-bold text-slate-800">{product.productName}</span>
-                    </div>
-                    
-                    {/* Column 2: SKU */}
-                    <div className="text-slate-500 font-mono text-sm">
-                        {product.sku}
-                    </div>
-                    
-                    {/* Column 3: Units/Variants */}
-                    <div className="space-y-2">
-                        {product.units.length > 0 ? product.units.map((unit, unitIndex) => (
-                            <div key={unitIndex} className="bg-slate-50 p-2 rounded-lg grid grid-cols-3 items-center gap-2 text-sm">
-                                <div className="font-medium text-slate-800 whitespace-nowrap">
-                                    <span>{unit.unit}</span>
-                                    <span className="text-slate-500 ml-3">Rs{unit.price}</span>
-                                </div>
-                                <div className={`px-2 py-1 rounded text-xs text-center font-medium ${getUnitStatusClass(unit.quantityInStock)}`}>
-                                    {unit.quantityInStock} in stock
-                                </div>
-                                <button
-                                    onClick={() => handleRestockUnit(product.id, unitIndex, unit.unit)}
-                                    className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors font-semibold"
-                                >
-                                    <Package size={14} />
-                                    Restock
-                                </button>
-                            </div>
-                        )) : <div className="text-slate-400 text-sm">No units defined</div>}
-                    </div>
-                    
-                    {/* Column 4: Overall Status */}
-                    <div className="flex justify-center">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(product.overallStatus)} text-white`}>
-                            {product.overallStatus}
-                        </span>
-                    </div>
+      <div className="space-y-3">
+        {filteredProducts.map(product => (
+          <div key={product.id} className="bg-white rounded-xl shadow-lg p-4 grid grid-cols-1 md:grid-cols-[2fr,1fr,3fr,1fr,1fr] items-center gap-4 transition-shadow hover:shadow-md">
 
-                    {/* Column 5: Actions */}
-                    <div className="flex items-center justify-center gap-4">
-                        <button onClick={() => handleEdit(product)} className="text-slate-500 hover:text-blue-600 transition-colors" title="Edit Product">
-                            <Edit size={18} />
-                        </button>
-                        <button onClick={() => handleDelete(product.productName)} className="text-slate-500 hover:text-red-600 transition-colors" title="Delete Product">
-                            <Trash2 size={18} />
-                        </button>
-                    </div>
+            {/* Column 1: Product Info */}
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 flex-shrink-0">
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt={product.productName} className="h-12 w-12 rounded-full object-cover" />
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-orange-50 flex items-center justify-center">
+                    <span className="text-orange-600 font-semibold">{product.productName.substring(0, 2).toUpperCase()}</span>
+                  </div>
+                )}
+              </div>
+              <span className="font-bold text-slate-800">{product.productName}</span>
+            </div>
+
+            {/* Column 2: SKU */}
+            <div className="text-slate-500 font-mono text-sm">
+              {product.sku}
+            </div>
+
+            {/* Column 3: Units/Variants */}
+            <div className="space-y-2">
+              {product.units.length > 0 ? product.units.map((unit, unitIndex) => (
+                <div key={unitIndex} className="bg-slate-50 p-2 rounded-lg grid grid-cols-3 items-center gap-2 text-sm">
+                  <div className="font-medium text-slate-800 whitespace-nowrap">
+                    <span>{unit.unit}</span>
+                    <span className="text-slate-500 ml-3">Rs{unit.price}</span>
+                  </div>
+                  <div className={`px-2 py-1 rounded text-xs text-center font-medium ${getUnitStatusClass(unit.quantityInStock)}`}>
+                    {unit.quantityInStock} in stock
+                  </div>
+                  <button
+                    onClick={() => handleRestockUnit(product.id, unitIndex, unit.unit)}
+                    className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors font-semibold"
+                  >
+                    <Package size={14} />
+                    Restock
+                  </button>
                 </div>
-            ))}
-        </div>
+              )) : <div className="text-slate-400 text-sm">No units defined</div>}
+            </div>
+
+            {/* Column 4: Overall Status */}
+            <div className="flex justify-center">
+              <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(product.overallStatus)} text-white`}>
+                {product.overallStatus}
+              </span>
+            </div>
+
+            {/* Column 5: Actions */}
+            <div className="flex items-center justify-center gap-4">
+              <button onClick={() => handleEdit(product)} className="text-slate-500 hover:text-blue-600 transition-colors" title="Edit Product">
+                <Edit size={18} />
+              </button>
+              <button onClick={() => handleDelete(product.productName)} className="text-slate-500 hover:text-red-600 transition-colors" title="Delete Product">
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -600,7 +600,7 @@ const ProductInventorySize: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 className="text-3xl font-bold text-slate-900">Product Inventory</h1>
-            
+
             <div className="flex w-full sm:w-auto items-center gap-2">
               <div className="relative flex-grow">
                 <input
@@ -612,18 +612,18 @@ const ProductInventorySize: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 text-gray-500" size={16} />
               </div>
-              
+
               {/* View Mode Toggle */}
               <div className="flex items-center bg-white border-2 border-orange-200 rounded-lg p-0.5">
-                  <button onClick={() => setViewMode('grid')} className={`p-1 rounded-md ${viewMode === 'grid' ? 'bg-orange-100 text-orange-600' : 'text-gray-500 hover:bg-gray-100'}`}>
-                      <Grid size={18}/>
-                  </button>
-                  <button onClick={() => setViewMode('list')} className={`p-1 rounded-md ${viewMode === 'list' ? 'bg-orange-100 text-orange-600' : 'text-gray-500 hover:bg-gray-100'}`}>
-                      <List size={18}/>
-                  </button>
+                <button onClick={() => setViewMode('grid')} className={`p-1 rounded-md ${viewMode === 'grid' ? 'bg-orange-100 text-orange-600' : 'text-gray-500 hover:bg-gray-100'}`}>
+                  <Grid size={18} />
+                </button>
+                <button onClick={() => setViewMode('list')} className={`p-1 rounded-md ${viewMode === 'list' ? 'bg-orange-100 text-orange-600' : 'text-gray-500 hover:bg-gray-100'}`}>
+                  <List size={18} />
+                </button>
               </div>
 
-              <button 
+              <button
                 onClick={handleAddNewProduct}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white text-black border-2 border-orange-200 rounded-lg font-semibold hover:bg-orange-100 transition-all duration-300 text-sm md:text-base"
               >
@@ -637,36 +637,33 @@ const ProductInventorySize: React.FC = () => {
           <div className="mb-6 flex flex-wrap gap-2">
             <button
               onClick={() => handleSort('productName')}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                sortField === 'productName' 
-                  ? 'bg-orange-100 border-orange-300 text-orange-700' 
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${sortField === 'productName'
+                  ? 'bg-orange-100 border-orange-300 text-orange-700'
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Sort by Name {sortField === 'productName' && <ArrowUpDown className="inline ml-1" size={14} />}
             </button>
             <button
               onClick={() => handleSort('sku')}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                sortField === 'sku' 
-                  ? 'bg-orange-100 border-orange-300 text-orange-500' 
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${sortField === 'sku'
+                  ? 'bg-orange-100 border-orange-300 text-orange-500'
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Sort by SKU {sortField === 'sku' && <ArrowUpDown className="inline ml-1" size={14} />}
             </button>
             <button
               onClick={() => handleSort('overallStatus')}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                sortField === 'overallStatus' 
-                  ? 'bg-orange-100 border-orange-300 text-orange-500' 
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${sortField === 'overallStatus'
+                  ? 'bg-orange-100 border-orange-300 text-orange-500'
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Sort by Status {sortField === 'overallStatus' && <ArrowUpDown className="inline ml-1" size={14} />}
             </button>
           </div>
-          
+
           {filteredProducts.length === 0 ? (
             <div className="bg-white p-8 rounded-xl text-center shadow-lg">
               <AlertCircle className="mx-auto text-slate-600 mb-4" size={48} />
@@ -685,9 +682,9 @@ const ProductInventorySize: React.FC = () => {
                     <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
                       <div className="relative h-48 bg-gray-100">
                         {product.imageUrl ? (
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.productName} 
+                          <img
+                            src={product.imageUrl}
+                            alt={product.productName}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -774,7 +771,7 @@ const ProductInventorySize: React.FC = () => {
               )}
             </>
           )}
-          
+
           {editingProduct && (
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-white p-6 rounded-xl max-w-2xl w-full shadow-xl border-t-4 border-orange-500 max-h-[90vh] overflow-y-auto">
@@ -782,36 +779,36 @@ const ProductInventorySize: React.FC = () => {
                   <Edit size={20} className="text-orange-500" />
                   Edit Product
                 </h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-slate-700 text-sm font-medium mb-1">Product Name</label>
-                    <input 
-                      type="text" 
-                      value={editingProduct.productName} 
-                      onChange={(e) => handleUpdateProductField('productName', e.target.value)} 
-                      className="w-full px-3 py-2 border border-orange-200 rounded bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400" 
+                    <input
+                      type="text"
+                      value={editingProduct.productName}
+                      onChange={(e) => handleUpdateProductField('productName', e.target.value)}
+                      className="w-full px-3 py-2 border border-orange-200 rounded bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
                     />
                   </div>
 
                   <div>
                     <label className="block text-slate-700 text-sm font-medium mb-1">Product Description</label>
-                    <textarea 
-                      value={editingProduct.productDescription} 
-                      onChange={(e) => handleUpdateProductField('productDescription', e.target.value)} 
-                      placeholder="Enter product description..." 
-                      rows={3} 
-                      className="w-full px-3 py-2 border border-orange-200 rounded bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 resize-vertical" 
+                    <textarea
+                      value={editingProduct.productDescription}
+                      onChange={(e) => handleUpdateProductField('productDescription', e.target.value)}
+                      placeholder="Enter product description..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-orange-200 rounded bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 resize-vertical"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-slate-700 text-sm font-medium mb-1">SKU</label>
-                    <input 
-                      type="text" 
-                      value={editingProduct.sku} 
-                      onChange={(e) => handleUpdateProductField('sku', e.target.value)} 
-                      className="w-full px-3 py-2 border border-orange-200 rounded bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400" 
+                    <input
+                      type="text"
+                      value={editingProduct.sku}
+                      onChange={(e) => handleUpdateProductField('sku', e.target.value)}
+                      className="w-full px-3 py-2 border border-orange-200 rounded bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
                     />
                   </div>
 
@@ -872,16 +869,16 @@ const ProductInventorySize: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="mt-6 flex justify-end gap-3">
-                  <button 
-                    onClick={() => setEditingProduct(null)} 
+                  <button
+                    onClick={() => setEditingProduct(null)}
                     className="px-4 py-2 border border-slate-300 text-slate-700 rounded hover:bg-slate-100 transition-colors"
                   >
                     Cancel
                   </button>
-                  <button 
-                    onClick={saveEditedProduct} 
+                  <button
+                    onClick={saveEditedProduct}
                     className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-md"
                   >
                     Save Changes

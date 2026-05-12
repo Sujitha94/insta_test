@@ -28,7 +28,7 @@ export default function AdminPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/auth/users', {
+      const response = await axios.get('https://snaking-outhouse-oppose.ngrok-free.dev/api/auth/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data);
@@ -45,7 +45,7 @@ export default function AdminPage() {
       const tenentId = localStorage.getItem('tenentid');
       setLoading(true);
       const response = await axios.put(
-        `https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/auth/users/${userId}/block`,
+        `https://snaking-outhouse-oppose.ngrok-free.dev/api/auth/users/${userId}/block`,
         { currentStatus, tenentId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -146,9 +146,8 @@ export default function AdminPage() {
                     <div className="text-sm text-gray-500">{user.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.blocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                    }`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.blocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      }`}>
                       {user.blocked ? 'Blocked' : 'Active'}
                     </span>
                   </td>
@@ -161,9 +160,8 @@ export default function AdminPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Button
                       onClick={() => handleBlockUser(user._id, user.blocked)}
-                      className={`${
-                        user.blocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-                      } text-white`}
+                      className={`${user.blocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                        } text-white`}
                     >
                       {user.blocked ? 'Unblock' : 'Block'}
                     </Button>

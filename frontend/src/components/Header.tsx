@@ -127,7 +127,7 @@ const Header = (_props: HeaderProps) => {
   const navigate = useNavigate();
   const currentTitle = getPageTitle(location.pathname);
   const isNotificationRoute = location.pathname.includes('/notifications');
-  const API_BASE_URL = "https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api";
+  const API_BASE_URL = "https://snaking-outhouse-oppose.ngrok-free.dev/api";
 
   const [loading, setLoading] = useState<boolean>(true);
   const [agentMode, setAgentMode] = useState<string>('online');

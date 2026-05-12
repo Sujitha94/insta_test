@@ -39,7 +39,7 @@ const Packing: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const skuInputRef = useRef<HTMLInputElement>(null);
   const orderInputRef = useRef<HTMLInputElement>(null);
 
-  const apiBaseUrl = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+  const apiBaseUrl = 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
   useEffect(() => {
     if (orderInputRef.current) {
@@ -182,19 +182,19 @@ const Packing: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="flex flex-col items-center w-full bg-transparent rounded-lg p-6">
-      
+
       {/* Back Button - Box Style */}
       <div className="w-full flex justify-start mb-4">
-        <button 
-            onClick={onBack} 
-            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-[#D9702C] hover:border-[#D9702C] shadow-sm flex items-center font-medium px-4 py-2 rounded-lg transition-all duration-200"
+        <button
+          onClick={onBack}
+          className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-[#D9702C] hover:border-[#D9702C] shadow-sm flex items-center font-medium px-4 py-2 rounded-lg transition-all duration-200"
         >
-            <span className="mr-2 text-xl">←</span> Back to Status Menu
+          <span className="mr-2 text-xl">←</span> Back to Status Menu
         </button>
       </div>
 
       <div className="w-full max-w-md flex flex-col items-center relative">
-        
+
         {/* Changed bg-gray-50 to bg-transparent */}
         <div className="bg-transparent shadow-sm border px-3 py-5 text-center rounded-xl mb-4 w-full">
           <h1 className="text-2xl font-bold text-gray-800">Packing Station</h1>
@@ -326,7 +326,7 @@ interface Hold {
 }
 
 const HoldingPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const API_BASE_URL = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api';
+  const API_BASE_URL = 'https://snaking-outhouse-oppose.ngrok-free.dev/api';
   const ENDPOINTS = {
     ORDER_DETAILS: `${API_BASE_URL}/holdingroute/details`,
     UPDATE_HOLDING: `${API_BASE_URL}/holdingroute/update-holding`,
@@ -336,8 +336,8 @@ const HoldingPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    if(type === 'success') toast.success(message);
-    else if(type === 'error') toast.error(message);
+    if (type === 'success') toast.success(message);
+    else if (type === 'error') toast.error(message);
     else toast.info(message);
   };
 
@@ -496,14 +496,14 @@ const HoldingPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="flex flex-col w-full bg-transparent rounded-lg p-6">
-      
+
       {/* Back Button - Box Style */}
       <div className="w-full flex justify-start mb-4">
-        <button 
-            onClick={onBack} 
-            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-[#D9702C] hover:border-[#D9702C] shadow-sm flex items-center mt-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+        <button
+          onClick={onBack}
+          className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-[#D9702C] hover:border-[#D9702C] shadow-sm flex items-center mt-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium"
         >
-            <span className="mr-2 text-xl">←</span> Back to Status Menu
+          <span className="mr-2 text-xl">←</span> Back to Status Menu
         </button>
       </div>
 
@@ -607,15 +607,15 @@ const HoldingPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               {filteredHolds.map((hold) => (
                 <div key={hold.id} className="border p-4 rounded-lg flex justify-between items-start hover:bg-gray-50">
                   <div>
-                     <h3 className="font-bold text-gray-800">Order #{hold.orderNumber}</h3>
-                     <p className="text-sm text-gray-600">{hold.customerName}</p>
-                     <p className="text-sm mt-1"><span className="font-semibold">Product:</span> {hold.holdingProduct}</p>
+                    <h3 className="font-bold text-gray-800">Order #{hold.orderNumber}</h3>
+                    <p className="text-sm text-gray-600">{hold.customerName}</p>
+                    <p className="text-sm mt-1"><span className="font-semibold">Product:</span> {hold.holdingProduct}</p>
                   </div>
                   <div className="text-right">
-                     <span className={`px-2 py-1 rounded text-xs font-semibold ${hold.status === 'active' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{hold.status.toUpperCase()}</span>
-                     {hold.status === 'active' && (
-                       <button onClick={() => resolveHold(hold.id, hold.orderNumber)} className="block mt-2 text-sm text-[#D9702C] underline hover:text-[#BF5B1A]">Resolve</button>
-                     )}
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${hold.status === 'active' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{hold.status.toUpperCase()}</span>
+                    {hold.status === 'active' && (
+                      <button onClick={() => resolveHold(hold.id, hold.orderNumber)} className="block mt-2 text-sm text-[#D9702C] underline hover:text-[#BF5B1A]">Resolve</button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -632,190 +632,190 @@ const HoldingPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 // ==========================================
 
 const Tracking: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-    const [orderNumber, setOrderNumber] = useState('');
-    const [trackingNumber, setTrackingNumber] = useState('');
-    const [weight, setWeight] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
-    const orderNumberInputRef = useRef<HTMLInputElement>(null);
-    const trackingNumberInputRef = useRef<HTMLInputElement>(null);
-    const weightInputRef = useRef<HTMLInputElement>(null);
+  const [orderNumber, setOrderNumber] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [weight, setWeight] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const orderNumberInputRef = useRef<HTMLInputElement>(null);
+  const trackingNumberInputRef = useRef<HTMLInputElement>(null);
+  const weightInputRef = useRef<HTMLInputElement>(null);
 
-    // Custom Alert Logic with updated Colors
-    const showAlert = (type: string, title: string, text: string, showConfirm: boolean = true): Promise<boolean> => {
-        return new Promise((resolve) => {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
-            const bgColor = type === 'success' ? 'bg-green-50 border-green-200' : type === 'error' ? 'bg-red-50 border-red-200' : type === 'warning' ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-[#D9702C]';
-            
-            // Buttons using Brand Orange instead of Blue
-            alertDiv.innerHTML = `
+  // Custom Alert Logic with updated Colors
+  const showAlert = (type: string, title: string, text: string, showConfirm: boolean = true): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+      const bgColor = type === 'success' ? 'bg-green-50 border-green-200' : type === 'error' ? 'bg-red-50 border-red-200' : type === 'warning' ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-[#D9702C]';
+
+      // Buttons using Brand Orange instead of Blue
+      alertDiv.innerHTML = `
                 <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 ${bgColor} border-2">
                     <div class="text-center">
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">${title}</h3>
                         <p class="text-gray-600 mb-6">${text}</p>
                         <div class="flex justify-center space-x-3">
-                            ${showConfirm ? 
-                              `<button id="confirm-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">Yes</button>
-                               <button id="cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">No</button>` 
-                              : 
-                              `<button id="ok-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">OK</button>`
-                            }
+                            ${showConfirm ?
+          `<button id="confirm-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">Yes</button>
+                               <button id="cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">No</button>`
+          :
+          `<button id="ok-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">OK</button>`
+        }
                         </div>
                     </div>
                 </div>`;
-            document.body.appendChild(alertDiv);
-            const confirmBtn = alertDiv.querySelector('#confirm-btn') as HTMLButtonElement;
-            const cancelBtn = alertDiv.querySelector('#cancel-btn') as HTMLButtonElement;
-            const okBtn = alertDiv.querySelector('#ok-btn') as HTMLButtonElement;
-            
-            const cleanup = () => {
-                if (document.body.contains(alertDiv)) {
-                    document.body.removeChild(alertDiv);
-                }
-            };
+      document.body.appendChild(alertDiv);
+      const confirmBtn = alertDiv.querySelector('#confirm-btn') as HTMLButtonElement;
+      const cancelBtn = alertDiv.querySelector('#cancel-btn') as HTMLButtonElement;
+      const okBtn = alertDiv.querySelector('#ok-btn') as HTMLButtonElement;
 
-            if (showConfirm) {
-                if (confirmBtn) confirmBtn.onclick = () => { cleanup(); resolve(true); };
-                if (cancelBtn) cancelBtn.onclick = () => { cleanup(); resolve(false); };
-            } else {
-                if (okBtn) okBtn.onclick = () => { cleanup(); resolve(true); };
-            }
-        });
-    };
-
-    const handleForceUpdate = async () => {
-        const tenentId = localStorage.getItem('tenentid');
-        if (!tenentId) return;
-        setLoading(true); setSuccessMessage(''); setErrorMessage('');
-        try {
-            const response = await fetch('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/trackingroute/force-update-tracking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderNumber, trackingNumber, weight: parseFloat(weight), tenentId, confirmOverride: true })
-            });
-            const data = await response.json();
-            if (response.ok && data.success) {
-                setSuccessMessage('Updated successfully');
-                setTimeout(() => {
-                    setOrderNumber(''); setTrackingNumber(''); setWeight(''); setSuccessMessage('');
-                    if (orderNumberInputRef.current) orderNumberInputRef.current.focus();
-                }, 2000);
-            } else {
-                setErrorMessage(data.message || 'Failed');
-            }
-        } catch (error) { setErrorMessage('Network error'); } finally { setLoading(false); }
-    };
-
-    const handleSubmit = async () => {
-        if (!orderNumber || !trackingNumber || !weight) { setErrorMessage('Fill all fields'); return; }
-        const tenentId = localStorage.getItem('tenentid');
-        if (!tenentId) { setErrorMessage('Tenant ID missing'); return; }
-
-        setLoading(true); setSuccessMessage(''); setErrorMessage('');
-        try {
-            const response = await fetch('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/trackingroute/update-tracking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderNumber, trackingNumber, weight: parseFloat(weight), tenentId })
-            });
-            const data = await response.json();
-            if (response.ok && data.success) {
-                setSuccessMessage('Updated successfully');
-                setTimeout(() => {
-                    setOrderNumber(''); setTrackingNumber(''); setWeight(''); setSuccessMessage('');
-                    if (orderNumberInputRef.current) orderNumberInputRef.current.focus();
-                }, 2000);
-            } else {
-                if (data.statusCheck) {
-                    if (data.statusCheck === 'ALREADY_SHIPPED') {
-                        const confirm = await showAlert('question', 'Already Shipped', 'Overwrite data?', true);
-                        if (confirm) await handleForceUpdate();
-                    } else {
-                        await showAlert('warning', 'Issue', data.message || 'Check status', false);
-                    }
-                } else {
-                    setErrorMessage(data.message);
-                }
-            }
-        } catch (error) { setErrorMessage('Network error'); } finally { setLoading(false); }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent, currentField: string) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (currentField === 'orderNumber' && trackingNumberInputRef.current) trackingNumberInputRef.current.focus();
-            if (currentField === 'trackingNumber' && weightInputRef.current) weightInputRef.current.focus();
-            if (currentField === 'weight') handleSubmit();
+      const cleanup = () => {
+        if (document.body.contains(alertDiv)) {
+          document.body.removeChild(alertDiv);
         }
-    };
+      };
 
-    return (
-        <div className="flex flex-col items-center w-full p-6">
-             
-             {/* Back Button - Box Style */}
-             <div className="w-full flex justify-start mb-4">
-                <button 
-                    onClick={onBack} 
-                    className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-[#D9702C] hover:border-[#D9702C] shadow-sm flex items-center px-4 py-2 rounded-lg transition-all duration-200 font-medium"
-                >
-                    <span className="mr-2 text-xl">←</span> Back to Status Menu
-                </button>
-            </div>
+      if (showConfirm) {
+        if (confirmBtn) confirmBtn.onclick = () => { cleanup(); resolve(true); };
+        if (cancelBtn) cancelBtn.onclick = () => { cleanup(); resolve(false); };
+      } else {
+        if (okBtn) okBtn.onclick = () => { cleanup(); resolve(true); };
+      }
+    });
+  };
 
-            <div className="max-w-md w-full">
-                <div className="bg-white shadow-sm border rounded-lg p-4 mb-6 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Tracking Station</h2>
-                </div>
-                {successMessage && <div className="bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded mb-4 text-center">{successMessage}</div>}
-                {errorMessage && <div className="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-center">{errorMessage}</div>}
+  const handleForceUpdate = async () => {
+    const tenentId = localStorage.getItem('tenentid');
+    if (!tenentId) return;
+    setLoading(true); setSuccessMessage(''); setErrorMessage('');
+    try {
+      const response = await fetch('https://snaking-outhouse-oppose.ngrok-free.dev/api/trackingroute/force-update-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, trackingNumber, weight: parseFloat(weight), tenentId, confirmOverride: true })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSuccessMessage('Updated successfully');
+        setTimeout(() => {
+          setOrderNumber(''); setTrackingNumber(''); setWeight(''); setSuccessMessage('');
+          if (orderNumberInputRef.current) orderNumberInputRef.current.focus();
+        }, 2000);
+      } else {
+        setErrorMessage(data.message || 'Failed');
+      }
+    } catch (error) { setErrorMessage('Network error'); } finally { setLoading(false); }
+  };
 
-                <div className="bg-white shadow-sm border rounded-lg">
-                    <div className="p-6 space-y-3">
-                        <div>
-                            <label className="block font-semibold mb-2 text-gray-700">Order Number:</label>
-                            <input
-                                ref={orderNumberInputRef}
-                                type="text"
-                                value={orderNumber}
-                                onChange={(e) => setOrderNumber(e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, 'orderNumber')}
-                                className="w-full border rounded-md p-2 focus:ring-[#D9702C] focus:border-[#D9702C] outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-2 text-gray-700">Tracking Number:</label>
-                            <input
-                                ref={trackingNumberInputRef}
-                                type="text"
-                                value={trackingNumber}
-                                onChange={(e) => setTrackingNumber(e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, 'trackingNumber')}
-                                className="w-full border rounded-md p-2 focus:ring-[#D9702C] focus:border-[#D9702C] outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-2 text-gray-700">Weight (gms):</label>
-                            <input
-                                ref={weightInputRef}
-                                type="number"
-                                value={weight}
-                                onChange={(e) => setWeight(e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, 'weight')}
-                                className="w-full border rounded-md p-2 focus:ring-[#D9702C] focus:border-[#D9702C] outline-none"
-                            />
-                        </div>
-                    </div>
-                    <div className="py-4 bg-gray-50 border-t rounded-b-lg flex justify-center">
-                        <button onClick={handleSubmit} disabled={loading} className={`px-8 py-2 rounded-lg font-medium text-lg text-white ${loading ? 'bg-orange-400' : 'bg-[#D9702C] hover:bg-[#BF5B1A]'}`}>
-                            {loading ? 'Updating...' : 'Update Tracking'}
-                        </button>
-                    </div>
-                </div>
-            </div>
+  const handleSubmit = async () => {
+    if (!orderNumber || !trackingNumber || !weight) { setErrorMessage('Fill all fields'); return; }
+    const tenentId = localStorage.getItem('tenentid');
+    if (!tenentId) { setErrorMessage('Tenant ID missing'); return; }
+
+    setLoading(true); setSuccessMessage(''); setErrorMessage('');
+    try {
+      const response = await fetch('https://snaking-outhouse-oppose.ngrok-free.dev/api/trackingroute/update-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, trackingNumber, weight: parseFloat(weight), tenentId })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSuccessMessage('Updated successfully');
+        setTimeout(() => {
+          setOrderNumber(''); setTrackingNumber(''); setWeight(''); setSuccessMessage('');
+          if (orderNumberInputRef.current) orderNumberInputRef.current.focus();
+        }, 2000);
+      } else {
+        if (data.statusCheck) {
+          if (data.statusCheck === 'ALREADY_SHIPPED') {
+            const confirm = await showAlert('question', 'Already Shipped', 'Overwrite data?', true);
+            if (confirm) await handleForceUpdate();
+          } else {
+            await showAlert('warning', 'Issue', data.message || 'Check status', false);
+          }
+        } else {
+          setErrorMessage(data.message);
+        }
+      }
+    } catch (error) { setErrorMessage('Network error'); } finally { setLoading(false); }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, currentField: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (currentField === 'orderNumber' && trackingNumberInputRef.current) trackingNumberInputRef.current.focus();
+      if (currentField === 'trackingNumber' && weightInputRef.current) weightInputRef.current.focus();
+      if (currentField === 'weight') handleSubmit();
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center w-full p-6">
+
+      {/* Back Button - Box Style */}
+      <div className="w-full flex justify-start mb-4">
+        <button
+          onClick={onBack}
+          className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-[#D9702C] hover:border-[#D9702C] shadow-sm flex items-center px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+        >
+          <span className="mr-2 text-xl">←</span> Back to Status Menu
+        </button>
+      </div>
+
+      <div className="max-w-md w-full">
+        <div className="bg-white shadow-sm border rounded-lg p-4 mb-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-800">Tracking Station</h2>
         </div>
-    );
+        {successMessage && <div className="bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded mb-4 text-center">{successMessage}</div>}
+        {errorMessage && <div className="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-center">{errorMessage}</div>}
+
+        <div className="bg-white shadow-sm border rounded-lg">
+          <div className="p-6 space-y-3">
+            <div>
+              <label className="block font-semibold mb-2 text-gray-700">Order Number:</label>
+              <input
+                ref={orderNumberInputRef}
+                type="text"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'orderNumber')}
+                className="w-full border rounded-md p-2 focus:ring-[#D9702C] focus:border-[#D9702C] outline-none"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-2 text-gray-700">Tracking Number:</label>
+              <input
+                ref={trackingNumberInputRef}
+                type="text"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'trackingNumber')}
+                className="w-full border rounded-md p-2 focus:ring-[#D9702C] focus:border-[#D9702C] outline-none"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-2 text-gray-700">Weight (gms):</label>
+              <input
+                ref={weightInputRef}
+                type="number"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'weight')}
+                className="w-full border rounded-md p-2 focus:ring-[#D9702C] focus:border-[#D9702C] outline-none"
+              />
+            </div>
+          </div>
+          <div className="py-4 bg-gray-50 border-t rounded-b-lg flex justify-center">
+            <button onClick={handleSubmit} disabled={loading} className={`px-8 py-2 rounded-lg font-medium text-lg text-white ${loading ? 'bg-orange-400' : 'bg-[#D9702C] hover:bg-[#BF5B1A]'}`}>
+              {loading ? 'Updating...' : 'Update Tracking'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // ==========================================
@@ -824,9 +824,9 @@ const Tracking: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
 // UPDATED: Medium sized boxes (h-32) that fit on one screen without scrolling
 const DashboardCard = ({ title, icon, onClick, color }: { title: string, icon: string, onClick: () => void, color: string }) => (
-  <div 
-    onClick={onClick} 
-    className="bg-white p-4 rounded-xl shadow-md border hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center h-32 border-t-8 w-full group" 
+  <div
+    onClick={onClick}
+    className="bg-white p-4 rounded-xl shadow-md border hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center h-32 border-t-8 w-full group"
     style={{ borderColor: color }}
   >
     <div className="text-4xl mb-2 group-hover:scale-110 transition-transform duration-300">{icon}</div>
@@ -852,32 +852,32 @@ const StatusPage: React.FC = () => {
           // Removed padding to prevent scrolling
           <div className="flex flex-col items-center justify-center h-full w-full">
             <div className="mb-8 text-center">
-               <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Warehouse Operations</h1>
-               <p className="text-lg text-gray-600 mt-2 font-medium">Select a station to begin work.</p>
+              <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Warehouse Operations</h1>
+              <p className="text-lg text-gray-600 mt-2 font-medium">Select a station to begin work.</p>
             </div>
-            
+
             {/* Cards Container - Compact gap */}
             <div className="flex flex-col gap-4 w-full max-w-lg px-4">
-              
-              <DashboardCard 
-                title="Packing Station" 
-                icon="📦" 
+
+              <DashboardCard
+                title="Packing Station"
+                icon="📦"
                 color="#D9702C" // Brand Orange
-                onClick={() => setCurrentView('packing')} 
+                onClick={() => setCurrentView('packing')}
               />
 
-              <DashboardCard 
-                title="Tracking / Manifest" 
-                icon="🚚" 
+              <DashboardCard
+                title="Tracking / Manifest"
+                icon="🚚"
                 color="#BF5B1A" // Darker Rust/Orange
-                onClick={() => setCurrentView('tracking')} 
+                onClick={() => setCurrentView('tracking')}
               />
 
-              <DashboardCard 
-                title="Holding Area" 
-                icon="⏸️" 
+              <DashboardCard
+                title="Holding Area"
+                icon="⏸️"
                 color="#D9702C" // Brand Orange
-                onClick={() => setCurrentView('holding')} 
+                onClick={() => setCurrentView('holding')}
               />
 
             </div>
@@ -889,7 +889,7 @@ const StatusPage: React.FC = () => {
   return (
     // Fixed height screen to prevent scrolling on dashboard
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
-       <ToastContainer />
+      <ToastContainer />
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {renderContent()}
       </div>

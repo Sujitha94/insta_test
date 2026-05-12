@@ -6,7 +6,7 @@ interface Message {
   senderId: string;
   recipientId: string;
   tenentId: string;
-  messageType: 'text' | 'template' | 'audio' | 'image'|'video'|'ig_reel'|'ig_stroy'| 'carousel';
+  messageType: 'text' | 'template' | 'audio' | 'image' | 'video' | 'ig_reel' | 'ig_stroy' | 'carousel';
   message: string;
   response?: string;
   Timestamp: string;
@@ -55,9 +55,8 @@ interface TimeStampProps {
 }
 
 const TimeStamp: React.FC<TimeStampProps> = ({ time, isOutgoing }) => (
-  <div className={`text-xs mt-2 ${
-    !isOutgoing ? 'text-gray-500' : 'text-white opacity-70'
-  }`}>
+  <div className={`text-xs mt-2 ${!isOutgoing ? 'text-gray-500' : 'text-white opacity-70'
+    }`}>
     {time}
   </div>
 );
@@ -77,7 +76,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
     const fetchImage = async () => {
       const sourceImageUrl = message.imageUrl || message.message;
       const responseImageUrl = message.response;
-      
+
       if (!sourceImageUrl && !responseImageUrl) {
         setImageError(true);
         setIsLoading(false);
@@ -85,7 +84,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
       }
 
       try {
-        const baseUrl = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+        const baseUrl = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
         const proxyUrl = `${baseUrl}/api/imageproxyroutes/proxy-image`;
 
         if (sourceImageUrl) {
@@ -95,8 +94,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
             headers: { 'Accept': 'image/*' }
           });
 
-          const imageBlob = new Blob([response.data], { 
-            type: response.headers['content-type'] || 'image/jpeg' 
+          const imageBlob = new Blob([response.data], {
+            type: response.headers['content-type'] || 'image/jpeg'
           });
           const blobUrl = URL.createObjectURL(imageBlob);
           setImageData(blobUrl);
@@ -109,8 +108,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
             headers: { 'Accept': 'image/*' }
           });
 
-          const responseImageBlob = new Blob([responseImgResponse.data], { 
-            type: responseImgResponse.headers['content-type'] || 'image/jpeg' 
+          const responseImageBlob = new Blob([responseImgResponse.data], {
+            type: responseImgResponse.headers['content-type'] || 'image/jpeg'
           });
           const responseBlobUrl = URL.createObjectURL(responseImageBlob);
           setResponseImageData(responseBlobUrl);
@@ -137,23 +136,21 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   return (
     <>
       {(imageData || isLoading) && (
-        <div className={`flex ${
-          message.senderId === selectedContact?.senderId 
-            ? 'justify-start' 
+        <div className={`flex ${message.senderId === selectedContact?.senderId
+            ? 'justify-start'
             : 'justify-end'
-        } mb-3`}>
-          <div className={`max-w-[350px] min-w-[200px] rounded-[20px] px-6 py-3 ${
-            message.senderId === selectedContact?.senderId 
-              ? 'bg-white shadow-md border border-gray-200' 
+          } mb-3`}>
+          <div className={`max-w-[350px] min-w-[200px] rounded-[20px] px-6 py-3 ${message.senderId === selectedContact?.senderId
+              ? 'bg-white shadow-md border border-gray-200'
               : 'bg-blue-500 text-white'
-          }`}>
+            }`}>
             {isLoading && <LoadingSpinner />}
             {imageError ? (
               <ErrorMessage />
             ) : imageData && (
-              <img 
+              <img
                 src={imageData}
-                alt="Chat message" 
+                alt="Chat message"
                 className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                 style={{ display: isLoading ? 'none' : 'block' }}
                 onError={() => setImageError(true)}
@@ -161,8 +158,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
                 onClick={() => handleImageClick(imageData)}
               />
             )}
-            <TimeStamp 
-              time={formatMessageTime(message.Timestamp)} 
+            <TimeStamp
+              time={formatMessageTime(message.Timestamp)}
               isOutgoing={message.senderId !== selectedContact?.senderId}
             />
           </div>
@@ -172,9 +169,9 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
       {responseImageData && (
         <div className="flex justify-end mb-3">
           <div className="max-w-[350px] min-w-[200px] bg-blue-500 text-white rounded-[20px] px-6 py-3 shadow-md">
-            <img 
+            <img
               src={responseImageData}
-              alt="Response" 
+              alt="Response"
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
               onError={() => setImageError(true)}
               onClick={() => handleImageClick(responseImageData)}

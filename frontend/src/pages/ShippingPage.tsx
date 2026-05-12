@@ -57,12 +57,12 @@ if (typeof document !== 'undefined') {
 }
 
 const INDIAN_STATES = [
-  "Andaman and Nicobar Islands","Andhra Pradesh","Arunachal Pradesh","Assam","Bihar",
-  "Chandigarh","Chhattisgarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Goa",
-  "Gujarat","Haryana","Himachal Pradesh","Jammu and Kashmir","Jharkhand","Karnataka",
-  "Kerala","Ladakh","Lakshadweep","Madhya Pradesh","Maharashtra","Manipur","Meghalaya",
-  "Mizoram","Nagaland","Odisha","Puducherry","Punjab","Rajasthan","Sikkim","Tamil Nadu",
-  "Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal"
+  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+  "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
+  "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
+  "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
+  "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
 ];
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ const ShippingPage: React.FC = () => {
   const [activeThresholdTab, setActiveThresholdTab] = useState<'global' | 'state'>('global');
 
   const tenentId = localStorage.getItem('tenentid') || 'test-tenant';
-  const appUrl = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+  const appUrl = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -445,7 +445,7 @@ const ShippingPage: React.FC = () => {
       confirmButtonText: 'Yes, delete it!', customClass: { popup: 'swal2-popup' }
     });
     if (result.isConfirmed) {
-      try { await axios.delete(`${appUrl}/api/shippingmethodroute/delete/${id}`, { data: { tenentId } }); } catch {}
+      try { await axios.delete(`${appUrl}/api/shippingmethodroute/delete/${id}`, { data: { tenentId } }); } catch { }
       setMethods(methods.filter(m => m._id !== id));
       await Swal.fire({ title: 'Deleted!', text: 'Shipping method deleted.', icon: 'success', timer: 1500, customClass: { popup: 'swal2-popup' } });
     }

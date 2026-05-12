@@ -72,7 +72,7 @@ export default function Profile() {
         navigate('/login')
         return
       }
-      const response = await axios.get('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/profileroute/profile', {
+      const response = await axios.get('https://snaking-outhouse-oppose.ngrok-free.dev/api/profileroute/profile', {
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -120,7 +120,7 @@ export default function Profile() {
         navigate('/login')
         return
       }
-      const response = await axios.get('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/profileroute/accountprofile', {
+      const response = await axios.get('https://snaking-outhouse-oppose.ngrok-free.dev/api/profileroute/accountprofile', {
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -165,7 +165,7 @@ export default function Profile() {
         return
       }
       const response = await axios.put(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/profileroute/accountprofile',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/profileroute/accountprofile',
         { name: editedName, email: editedEmail, tenentId },
         {
           headers: {

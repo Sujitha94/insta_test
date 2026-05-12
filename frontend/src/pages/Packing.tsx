@@ -67,7 +67,7 @@ const Packing: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   const html5QrCode = useRef<Html5Qrcode | null>(null);
   const isStartingRef = useRef(false);
 
-  const apiBaseUrl = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+  const apiBaseUrl = 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -142,7 +142,7 @@ const Packing: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
               setTimeout(() => handleSkuSubmitAfterScan(decodedText), 300);
             }
           },
-          () => {}
+          () => { }
         );
 
         if (mounted) {

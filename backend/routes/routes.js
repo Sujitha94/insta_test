@@ -106,12 +106,18 @@ const fs = require("fs");
 const OpenAI = require("openai");
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY, // This is the default and can be omitted
-});
+let openai = null;
+if (OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: OPENAI_API_KEY, // This is the default and can be omitted
+  });
+} else {
+  console.warn("WARNING: OPENAI_API_KEY is missing in routes.js. OpenAI functionality will be disabled.");
+}
+
 const appUrl =
   process.env.APP_URL ||
-  "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+  "https://snaking-outhouse-oppose.ngrok-free.dev";
 const regex = /\w+/g;
 let vectorDB = [];
 const config = require("../services/config");
@@ -213,7 +219,7 @@ function authenticateJWT(req, res, next) {
     next(); // Proceed to the next middleware or route handler
   });
 }
-router.all("*", function(req, res, next) {
+router.all("*", function (req, res, next) {
   // Use `x-forwarded-proto` if available, otherwise use `req.protocol`
   const reqProtocol = req.get("x-forwarded-proto")
     ? req.get("x-forwarded-proto").split(",")[0]

@@ -6,19 +6,19 @@ export default function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
-  
+
   // Detect mobile view
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 768);
     };
-    
+
     // Set initial value
     handleResize();
-    
+
     // Add event listener
     window.addEventListener('resize', handleResize);
-    
+
     // Cleanup
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -48,9 +48,9 @@ export default function FileUpload() {
 
     setUploading(true);
     try {
-      
+
       const response = await axios.post(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/fileuploadroute/upload',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/fileuploadroute/upload',
         formData,
         {
           headers: {
@@ -64,7 +64,7 @@ export default function FileUpload() {
         title: 'Upload Successful',
         text: response.data.message,
       });
-      
+
       // Reset the file state after successful upload
       setFile(null);
       // Reset the file input element
@@ -72,7 +72,7 @@ export default function FileUpload() {
       if (fileInput) {
         fileInput.value = '';
       }
-      
+
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -87,19 +87,19 @@ export default function FileUpload() {
   // Function to truncate filename for mobile display
   const getDisplayFileName = () => {
     if (!file) return 'No file chosen';
-    
+
     if (isMobileView && file.name.length > 15) {
       const extension = file.name.split('.').pop();
       const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
       return `${baseName.substring(0, 10)}...${extension}`;
     }
-    
+
     return file.name;
   };
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 w-full">
-      
+
       <div className="w-full max-w-[410px] mx-auto">
         <div className="bg-white shadow-lg px-4 sm:px-6 py-4 sm:py-5 text-center rounded-xl">
           <h1 className="text-xl sm:text-2xl font-bold text-black">Upload File</h1>
@@ -127,12 +127,12 @@ export default function FileUpload() {
           </div>
 
           <button
-          onClick={handleUpload}
-          disabled={uploading}
-          className="px-6 sm:px-8 py-2.5 sm:py-3 mt-4 sm:mt-6 w-full border-2 text-center border-orange-400 text-orange-700 rounded-lg text-base sm:text-lg font-semibold hover:bg-orange-300 hover:border-orange-500 transition-colors duration-200"
-        >
-          {uploading ? 'Uploading...' : 'Upload'}
-        </button>
+            onClick={handleUpload}
+            disabled={uploading}
+            className="px-6 sm:px-8 py-2.5 sm:py-3 mt-4 sm:mt-6 w-full border-2 text-center border-orange-400 text-orange-700 rounded-lg text-base sm:text-lg font-semibold hover:bg-orange-300 hover:border-orange-500 transition-colors duration-200"
+          >
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
         </div>
       </div>
     </div>

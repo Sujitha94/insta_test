@@ -22,7 +22,7 @@ interface TemplateMessage {
 const MAX_BODY_LENGTH = 1024;
 const MAX_WORKFLOWS = 3;
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
 const InstaxBot: React.FC = () => {
   const [messageTemplate, setMessageTemplate] = useState<MessageTemplateProps>({

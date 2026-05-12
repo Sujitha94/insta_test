@@ -3,23 +3,23 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { Camera, X } from 'lucide-react';
 
 const SuccessPopup: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => (
-  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4">
-    <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl text-center" style={{ animation: 'popIn 0.3s ease-out' }}>
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-        <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <h3 className="mb-1 text-lg font-bold text-gray-900">Success!</h3>
-      <p className="mb-6 text-sm text-gray-500">{message}</p>
-      <button
-        onClick={onClose}
-        className="w-full rounded-xl py-2.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#F57F26_0%,#D63031_100%)] shadow-md hover:opacity-90 transition"
-      >
-        OK
-      </button>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl text-center" style={{ animation: 'popIn 0.3s ease-out' }}>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 className="mb-1 text-lg font-bold text-gray-900">Success!</h3>
+            <p className="mb-6 text-sm text-gray-500">{message}</p>
+            <button
+                onClick={onClose}
+                className="w-full rounded-xl py-2.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#F57F26_0%,#D63031_100%)] shadow-md hover:opacity-90 transition"
+            >
+                OK
+            </button>
+        </div>
     </div>
-  </div>
 );
 
 const Tracking: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
@@ -98,7 +98,7 @@ const Tracking: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
                         handleCloseScanner();
                     },
-                    () => {}
+                    () => { }
                 );
 
                 if (mounted) {
@@ -158,11 +158,11 @@ const Tracking: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                         <p class="text-gray-600 mb-6">${text}</p>
                         <div class="flex justify-center space-x-3">
                             ${showConfirm ?
-                                `<button id="confirm-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">Yes</button>
+                    `<button id="confirm-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">Yes</button>
                                  <button id="cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">No</button>`
-                                :
-                                `<button id="ok-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">OK</button>`
-                            }
+                    :
+                    `<button id="ok-btn" style="background-color: #D9702C" class="px-4 py-2 text-white rounded hover:opacity-90">OK</button>`
+                }
                         </div>
                     </div>
                 </div>
@@ -209,7 +209,7 @@ const Tracking: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                 confirmOverride: true
             };
 
-            const response = await fetch('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/trackingroute/force-update-tracking', {
+            const response = await fetch('https://snaking-outhouse-oppose.ngrok-free.dev/api/trackingroute/force-update-tracking', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -251,7 +251,7 @@ const Tracking: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                 tenentId
             };
 
-            const response = await fetch('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/trackingroute/update-tracking', {
+            const response = await fetch('https://snaking-outhouse-oppose.ngrok-free.dev/api/trackingroute/update-tracking', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -450,11 +450,10 @@ const Tracking: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                                     type="button"
                                     onClick={handleSubmit}
                                     disabled={loading}
-                                    className={`w-full rounded-lg px-4 py-2 text-xs font-semibold text-white transition sm:rounded-2xl sm:px-6 sm:py-4 sm:text-base ${
-                                        loading
+                                    className={`w-full rounded-lg px-4 py-2 text-xs font-semibold text-white transition sm:rounded-2xl sm:px-6 sm:py-4 sm:text-base ${loading
                                             ? 'bg-orange-400'
                                             : 'bg-[linear-gradient(135deg,#F57F26_0%,#D63031_100%)] shadow-[0_18px_40px_rgba(214,48,49,0.24)] hover:opacity-95'
-                                    }`}
+                                        }`}
                                 >
                                     {loading ? 'Updating...' : 'Update Tracking'}
                                 </button>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   Plus, Save, Loader, Trash2, Edit, X,
-  MessageCircle, Send, Heart, Camera,
+  MessageCircle, Heart, Camera,
   ChevronLeft, ChevronRight, User, MoreHorizontal,
-  CheckCircle, MessageSquare, ShieldAlert
+  MessageSquare, ShieldAlert
 } from 'lucide-react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -852,11 +852,18 @@ const StoryCommentAutomation: React.FC<{ onClose: () => void }> = ({ onClose }) 
 };
 
 // ── Main Hub Component ────────────────────────────────────────────
-type ActiveTab = 'comment' | 'story' | 'chat' | 'moderation' | null;
+type ActiveTab = 'comment' | 'story' | 'chat' | 'moderation';
 
 const AllCommentsAutomation: React.FC = () => {
-  const [activeTab, setActiveTab]           = useState<ActiveTab>(null);
+  const [activeTab, setActiveTab]           = useState<ActiveTab>('comment');
   const [showModeration, setShowModeration] = useState<boolean>(false);
+
+  const TABS = [
+    { id: 'comment',    label: 'Comment Automation', icon: <MessageCircle size={18} /> },
+    { id: 'story',      label: 'Story Automation',   icon: <InstagramStoryIcon size={18} /> },
+    { id: 'chat',       label: 'Comment Chat',       icon: <MessageSquare size={18} /> },
+    ...(showModeration ? [{ id: 'moderation', label: 'Moderation', icon: <ShieldAlert size={18} /> }] : []),
+  ];
 
   // ── Check commentmoderation flag for this tenant ──────────────
   useEffect(() => {
@@ -874,108 +881,82 @@ const AllCommentsAutomation: React.FC = () => {
     <div className="min-h-screen w-full overflow-x-hidden bg-[#F8F9FB] p-3 sm:p-10 pb-24 sm:pb-10 font-sans selection:bg-orange-100">
       <div className="w-full max-w-7xl mx-auto space-y-6 sm:space-y-10">
 
-        <div className="text-center space-y-2 sm:space-y-3">
-          <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Instagram Automation</h1>
-          <p className="text-slate-700 max-w-md mx-auto text-xs sm:text-sm font-medium leading-relaxed">Configure response triggers for comments and story replies</p>
-        </div>
-
-        {/* ── Tab Cards Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-
-          {/* Card 1 — Comment Automation */}
-          <button
-            onClick={() => setActiveTab(activeTab === 'comment' ? null : 'comment')}
-            className={`relative p-4 rounded-2xl border-2 transition-all overflow-hidden group text-left
-              ${activeTab === 'comment' ? 'border-orange-500 bg-white shadow-xl scale-[1.02]' : 'border-transparent bg-white hover:border-orange-100 shadow-sm'}`}
-          >
-            <div className="flex items-center gap-3 relative z-10">
-              <div className={`p-2.5 rounded-xl transition-colors flex-shrink-0
-                ${activeTab === 'comment' ? 'bg-orange-600 text-white shadow-lg' : 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'}`}>
-                <MessageCircle size={20} />
-              </div>
-              <div>
-                <h2 className="text-xs font-bold text-slate-900 leading-tight">Comment Automation</h2>
-                <p className="text-slate-400 text-[10px] font-medium mt-0.5">Automate post and reels comment</p>
-              </div>
-            </div>
-            {activeTab === 'comment' && <div className="absolute top-3 right-3 text-orange-600"><CheckCircle size={15} /></div>}
-          </button>
-
-          {/* Card 2 — Story Automation */}
-          <button
-            onClick={() => setActiveTab(activeTab === 'story' ? null : 'story')}
-            className={`relative p-4 rounded-2xl border-2 transition-all overflow-hidden group text-left
-              ${activeTab === 'story' ? 'border-orange-500 bg-white shadow-xl scale-[1.02]' : 'border-transparent bg-white hover:border-orange-100 shadow-sm'}`}
-          >
-            <div className="flex items-center gap-3 relative z-10">
-              <div className={`p-2.5 rounded-xl transition-colors flex-shrink-0
-                ${activeTab === 'story' ? 'bg-orange-600 text-white shadow-lg' : 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'}`}>
-                <InstagramStoryIcon size={20} className={activeTab === 'story' ? 'text-white' : 'text-orange-500'} />
-              </div>
-              <div>
-                <h2 className="text-xs font-bold text-slate-900 leading-tight">Story Automation</h2>
-                <p className="text-slate-400 text-[10px] font-medium mt-0.5">Automate Replies from story</p>
-              </div>
-            </div>
-            {activeTab === 'story' && <div className="absolute top-3 right-3 text-orange-600"><CheckCircle size={15} /></div>}
-          </button>
-
-          {/* Card 3 — Comment Chat */}
-          <button
-            onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
-            className={`relative p-4 rounded-2xl border-2 transition-all overflow-hidden group text-left
-              ${activeTab === 'chat' ? 'border-orange-500 bg-white shadow-xl scale-[1.02]' : 'border-transparent bg-white hover:border-orange-100 shadow-sm'}`}
-          >
-            <div className="flex items-center gap-3 relative z-10">
-              <div className={`p-2.5 rounded-xl transition-colors flex-shrink-0
-                ${activeTab === 'chat' ? 'bg-orange-600 text-white shadow-lg' : 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'}`}>
-                <MessageSquare size={20} />
-              </div>
-              <div>
-                <h2 className="text-xs font-bold text-slate-900 leading-tight">Comment Chat</h2>
-                <p className="text-slate-400 text-[10px] font-medium mt-0.5">View Comments History</p>
-              </div>
-            </div>
-            {activeTab === 'chat' && <div className="absolute top-3 right-3 text-orange-600"><CheckCircle size={15} /></div>}
-          </button>
-
-          {/* Card 4 — Moderation (only when commentmoderation === true) */}
-          {showModeration && (
-            <button
-              onClick={() => setActiveTab(activeTab === 'moderation' ? null : 'moderation')}
-              className={`relative p-4 rounded-2xl border-2 transition-all overflow-hidden group text-left
-                ${activeTab === 'moderation' ? 'border-orange-500 bg-white shadow-xl scale-[1.02]' : 'border-transparent bg-white hover:border-orange-100 shadow-sm'}`}
-            >
-              <div className="flex items-center gap-3 relative z-10">
-                <div className={`p-2.5 rounded-xl transition-colors flex-shrink-0
-                  ${activeTab === 'moderation' ? 'bg-orange-600 text-white shadow-lg' : 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'}`}>
-                  <ShieldAlert size={20} />
-                </div>
-                <div>
-                  <h2 className="text-xs font-bold text-slate-900 leading-tight">Moderation</h2>
-                  <p className="text-slate-400 text-[10px] font-medium mt-0.5">Deleted &amp; hidden comments</p>
-                </div>
-              </div>
-              {activeTab === 'moderation' && <div className="absolute top-3 right-3 text-orange-600"><CheckCircle size={15} /></div>}
-            </button>
-          )}
-
+        {/* ── Top Tab Bar ── */}
+        <div className="bg-white border-b shadow-sm sticky top-0 z-10 -mx-3 sm:-mx-10 -mt-3 sm:-mt-10 mb-6">
+          <div className="flex w-full max-w-7xl mx-auto">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as ActiveTab)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 3,
+                    padding: '12px 0',
+                    border: 'none',
+                    borderBottom: isActive ? '2.5px solid transparent' : '2.5px solid transparent',
+                    borderImage: isActive ? 'linear-gradient(to right, #F57F26, #D63031) 1' : 'none',
+                    background: isActive ? 'linear-gradient(to bottom, #fff7f0, #ffffff)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    color: isActive ? '#F57F26' : '#9ca3af',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) (e.currentTarget as HTMLElement).style.color = '#F57F26';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) (e.currentTarget as HTMLElement).style.color = '#9ca3af';
+                  }}
+                >
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isActive ? 'transparent' : 'inherit',
+                    ...(isActive ? {
+                      background: 'linear-gradient(to right, #F57F26, #D63031)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    } : {}),
+                  }}>
+                    {React.cloneElement(tab.icon as React.ReactElement, {
+                      color: isActive ? '#F57F26' : '#9ca3af',
+                      size: 18,
+                    })}
+                  </span>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: 0.3,
+                    background: isActive ? 'linear-gradient(to right, #F57F26, #D63031)' : 'none',
+                    WebkitBackgroundClip: isActive ? 'text' : 'unset',
+                    WebkitTextFillColor: isActive ? 'transparent' : 'inherit',
+                    color: isActive ? 'transparent' : '#9ca3af',
+                  }}>
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Panels ── */}
         <div className="pt-4 transition-all duration-500">
 
-          {activeTab === 'comment' && <InstagramCommentAutomation onClose={() => setActiveTab(null)} />}
+          {activeTab === 'comment' && <InstagramCommentAutomation onClose={() => {}} />}
 
-          {activeTab === 'story' && <StoryCommentAutomation onClose={() => setActiveTab(null)} />}
+          {activeTab === 'story' && <StoryCommentAutomation onClose={() => {}} />}
 
           {activeTab === 'chat' && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden md:overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h2 className="text-sm font-bold text-slate-900">Comment Chat History</h2>
-                <button type="button" onClick={() => setActiveTab(null)} className="p-1.5 hover:bg-slate-200 rounded-md transition-colors">
-                  <X size={15} />
-                </button>
               </div>
               <Suspense fallback={
                 <div className="flex items-center justify-center py-20 gap-3 text-slate-400">
@@ -996,23 +977,10 @@ const AllCommentsAutomation: React.FC = () => {
                   <ShieldAlert size={15} className="text-orange-500" />
                   <h2 className="text-sm font-bold text-slate-900">Moderated Comments</h2>
                 </div>
-                <button type="button" onClick={() => setActiveTab(null)} className="p-1.5 hover:bg-slate-200 rounded-md transition-colors">
-                  <X size={15} />
-                </button>
               </div>
               <div className="p-4">
                 <Moderationcommentslist />
               </div>
-            </div>
-          )}
-
-          {!activeTab && (
-            <div className="text-center py-12 sm:py-20 opacity-10 flex flex-col items-center">
-              <div className="p-8 sm:p-10 border-4 border-dashed border-slate-300 rounded-full mb-6">
-                <Send size={48} className="sm:hidden text-slate-400" />
-                <Send size={60} className="hidden sm:block text-slate-400" />
-              </div>
-              <p className="font-medium text-slate-400 text-sm">Select a tool to begin configuration</p>
             </div>
           )}
 

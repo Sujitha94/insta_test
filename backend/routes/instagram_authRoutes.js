@@ -54,7 +54,7 @@ router.get("/auth/instagram/callback", async (req, res) => {
       client_secret: process.env.CLIENT_SECRET,
       grant_type: "authorization_code",
       redirect_uri:
-        "https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/instagram_authroute/auth/instagram/callback",
+        "https://snaking-outhouse-oppose.ngrok-free.dev/api/instagram_authroute/auth/instagram/callback",
       code: authCode,
     });
 
@@ -368,7 +368,7 @@ router.post("/auth/instagram/data_deletion", (req, res) => {
   console.log(`Starting data deletion for user: ${userId}`);
 
   const confirmationCode = "abc123";
-  const statusUrl = `https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/instagram_authroute/auth/instagram/data_deletion?id=${confirmationCode}`;
+  const statusUrl = `https://snaking-outhouse-oppose.ngrok-free.dev/api/instagram_authroute/auth/instagram/data_deletion?id=${confirmationCode}`;
 
   res.json({
     url: statusUrl,

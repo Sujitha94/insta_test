@@ -31,7 +31,7 @@ export default function NotificationIcon() {
     console.log('WebSocket message received:', data);
 
     if (data.type === 'notifications' && data.status === 'success') {
-      const notificationsData = Array.isArray(data.data) ? data.data :[];
+      const notificationsData = Array.isArray(data.data) ? data.data : [];
       setNotifications(notificationsData);
     }
 
@@ -48,7 +48,7 @@ export default function NotificationIcon() {
         }
       });
     }
-  },[]);
+  }, []);
 
   useEffect(() => {
     const wsService = getWebSocketService();
@@ -56,7 +56,7 @@ export default function NotificationIcon() {
 
     wsService.addMessageHandler(handleWebSocketMessage);
 
-    const wsUrl = `https://inocencia-shiftiest-nonodorously.ngrok-free.dev`; 
+    const wsUrl = `https://snaking-outhouse-oppose.ngrok-free.dev`;
     wsService.connect(wsUrl);
 
     wsService.onConnect(() => {
@@ -73,7 +73,7 @@ export default function NotificationIcon() {
       wsService.removeMessageHandler(handleWebSocketMessage);
       wsService.disconnect();
     };
-  },[handleWebSocketMessage]); 
+  }, [handleWebSocketMessage]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -86,7 +86,7 @@ export default function NotificationIcon() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  },[]);
+  }, []);
 
   const markAsRead = async (id: string) => {
     const tenentId = localStorage.getItem('tenentid');
@@ -132,9 +132,8 @@ export default function NotificationIcon() {
       >
         <Bell
           size={20}
-          className={`transition-colors duration-200 ${
-            unreadCount > 0 ? 'text-gray-900' : 'text-gray-600'
-          }`}
+          className={`transition-colors duration-200 ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-600'
+            }`}
           strokeWidth={unreadCount > 0 ? 2.5 : 2}
         />
 
@@ -196,11 +195,10 @@ export default function NotificationIcon() {
                   <div
                     key={notif.ID}
                     // ✅ Dynamic background: light orange if unread, white if read
-                    className={`relative px-4 py-3 cursor-pointer transition-colors duration-150 ${
-                      notif.isRead 
-                        ? 'bg-white hover:bg-gray-50 active:bg-gray-100' 
+                    className={`relative px-4 py-3 cursor-pointer transition-colors duration-150 ${notif.isRead
+                        ? 'bg-white hover:bg-gray-50 active:bg-gray-100'
                         : 'bg-orange-50 hover:bg-orange-100 active:bg-orange-200'
-                    }`}
+                      }`}
                     onClick={(e) => {
                       e.stopPropagation();
                       markAsRead(notif.ID);
@@ -212,9 +210,8 @@ export default function NotificationIcon() {
                     )}
 
                     <div className={`${!notif.isRead ? 'pl-4' : ''}`}>
-                      <p className={`text-sm leading-relaxed mb-1 ${
-                        notif.isRead ? 'text-gray-700' : 'text-gray-900 font-medium'
-                      }`}>
+                      <p className={`text-sm leading-relaxed mb-1 ${notif.isRead ? 'text-gray-700' : 'text-gray-900 font-medium'
+                        }`}>
                         {notif.message}
                       </p>
                       <p className="text-xs text-gray-500">

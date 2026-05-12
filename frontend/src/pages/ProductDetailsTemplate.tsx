@@ -74,7 +74,7 @@ const ProductDetailsTemplate: React.FC<ProductDetailsTemplateProps> = ({
       if (!tenentId) {
         throw new Error('Tenant ID not found in localStorage');
       }
-      const response = await axios.post('https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/templatesroute/Product-type-list', {
+      const response = await axios.post('https://snaking-outhouse-oppose.ngrok-free.dev/api/templatesroute/Product-type-list', {
         tenentId
       });
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -379,7 +379,7 @@ const ProductDetailsTemplate: React.FC<ProductDetailsTemplateProps> = ({
     try {
       const formData = prepareFormData();
       const response = await axios.post(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/templatesroute/product-details/update',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/templatesroute/product-details/update',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -423,7 +423,7 @@ const ProductDetailsTemplate: React.FC<ProductDetailsTemplateProps> = ({
     try {
       const formData = prepareFormData();
       const response = await axios.post(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/templatesroute/product-details',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/templatesroute/product-details',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -456,7 +456,7 @@ const ProductDetailsTemplate: React.FC<ProductDetailsTemplateProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 pb-36 w-full">
-      
+
 
       <div className="max-w-4xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
@@ -762,122 +762,122 @@ const ProductDetailsTemplate: React.FC<ProductDetailsTemplateProps> = ({
                           disabled={isSubmitting || isUpdating}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-800 placeholder-gray-400 focus:outline-
                           -none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm md:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
-                       />
-                       {color.imageUrl && (
-                         <div className="mt-2">
-                           <img
-                             src={color.imageUrl}
-                             alt={`${color.color} variant`}
-                             className="w-16 h-16 object-cover rounded-md border border-gray-200"
-                             onError={(e) => {
-                               const target = e.target as HTMLImageElement;
-                               target.style.display = 'none';
-                             }}
-                           />
-                         </div>
-                       )}
-                     </div>
-                   </div>
-                 ))}
-               </div>
+                        />
+                        {color.imageUrl && (
+                          <div className="mt-2">
+                            <img
+                              src={color.imageUrl}
+                              alt={`${color.color} variant`}
+                              className="w-16 h-16 object-cover rounded-md border border-gray-200"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-               <div>
-                 <label className="block text-sm md:text-base font-medium text-gray-700 mb-1 md:mb-2">
-                   Main Product Photo <span className="text-red-500">*</span>
-                 </label>
-                 <div className="flex flex-col md:flex-row md:items-start gap-3 md:gap-10">
-                   <label className={`cursor-pointer mb-2 md:mb-0 ${(isSubmitting || isUpdating) ? 'pointer-events-none opacity-50' : ''}`}>
-                     <div className="relative">
-                       {product.productPhotoPreview ? (
-                         <div className="relative">
-                           <img
-                             src={product.productPhotoPreview}
-                             alt="Product preview"
-                             className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg border-2 border-orange-200"
-                           />
-                           {product.isExternalImage && (
-                             <div className="absolute top-1 right-1 bg-green-100 text-green-600 rounded-full p-1">
-                               <CheckCircle size={12} />
-                             </div>
-                           )}
-                         </div>
-                       ) : (
-                         <div className="w-24 h-24 md:w-32 md:h-32 border-2 border-dashed border-orange-200 rounded-md flex items-center justify-center bg-orange-50">
-                           <Image className="text-orange-400" size={24} />
-                         </div>
-                       )}
-                       <input
-                         type="file"
-                         accept="image/*"
-                         onChange={(e) => handlePhotoChange(productIndex, e)}
-                         disabled={isSubmitting || isUpdating}
-                         className="hidden"
-                       />
-                     </div>
-                   </label>
-                   <div className="flex-1">
-                     <input
-                       type="url"
-                       placeholder="Or enter image URL (https://...)"
-                       value={product.productPhotoUrl || ''}
-                       onChange={(e) => handleImageUrlInput(productIndex, e.target.value)}
-                       disabled={isSubmitting || isUpdating}
-                       className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm md:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
-                     />
-                     <p className="text-xs text-gray-500 mt-1">
-                       Upload a file or provide an image URL. Max file size: 5MB
-                     </p>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           ))}
-         </div>
+                <div>
+                  <label className="block text-sm md:text-base font-medium text-gray-700 mb-1 md:mb-2">
+                    Main Product Photo <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex flex-col md:flex-row md:items-start gap-3 md:gap-10">
+                    <label className={`cursor-pointer mb-2 md:mb-0 ${(isSubmitting || isUpdating) ? 'pointer-events-none opacity-50' : ''}`}>
+                      <div className="relative">
+                        {product.productPhotoPreview ? (
+                          <div className="relative">
+                            <img
+                              src={product.productPhotoPreview}
+                              alt="Product preview"
+                              className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg border-2 border-orange-200"
+                            />
+                            {product.isExternalImage && (
+                              <div className="absolute top-1 right-1 bg-green-100 text-green-600 rounded-full p-1">
+                                <CheckCircle size={12} />
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-24 h-24 md:w-32 md:h-32 border-2 border-dashed border-orange-200 rounded-md flex items-center justify-center bg-orange-50">
+                            <Image className="text-orange-400" size={24} />
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePhotoChange(productIndex, e)}
+                          disabled={isSubmitting || isUpdating}
+                          className="hidden"
+                        />
+                      </div>
+                    </label>
+                    <div className="flex-1">
+                      <input
+                        type="url"
+                        placeholder="Or enter image URL (https://...)"
+                        value={product.productPhotoUrl || ''}
+                        onChange={(e) => handleImageUrlInput(productIndex, e.target.value)}
+                        disabled={isSubmitting || isUpdating}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm md:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Upload a file or provide an image URL. Max file size: 5MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-         <div className="bg-white rounded-lg shadow-md p-4 md:p-6 border border-orange-100">
-           <div className="flex flex-col gap-3">
-             <button
-               type="submit"
-               disabled={isSubmitting || isUpdating}
-               className="w-full px-4 py-2.5 bg-orange-600 text-white rounded-md font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-             >
-               {isSubmitting ? (
-                 <>
-                   <RefreshCw size={16} className="animate-spin" />
-                   Saving to Both Collections...
-                 </>
-               ) : (
-                 <>
-                   <Save size={16} />
-                   Save Product Details
-                 </>
-               )}
-             </button>
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 border border-orange-100">
+            <div className="flex flex-col gap-3">
+              <button
+                type="submit"
+                disabled={isSubmitting || isUpdating}
+                className="w-full px-4 py-2.5 bg-orange-600 text-white rounded-md font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Saving to Both Collections...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Save Product Details
+                  </>
+                )}
+              </button>
 
-             <button
-               type="button"
-               onClick={handleUpdate}
-               disabled={isSubmitting || isUpdating}
-               className="w-full px-4 py-2.5 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-             >
-               {isUpdating ? (
-                 <>
-                   <RefreshCw size={16} className="animate-spin" />
-                   Updating Both Collections...
-                 </>
-               ) : (
-                 <>
-                   <Save size={16} />
-                   Update Product Details
-                 </>
-               )}
-             </button>
-           </div>
-         </div>
-       </form>
-     </div>
-   </div>
- );
+              <button
+                type="button"
+                onClick={handleUpdate}
+                disabled={isSubmitting || isUpdating}
+                className="w-full px-4 py-2.5 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUpdating ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Updating Both Collections...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Update Product Details
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default ProductDetailsTemplate;

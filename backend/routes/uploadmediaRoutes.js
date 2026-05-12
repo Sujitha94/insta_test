@@ -9,11 +9,17 @@ dotenv.config();
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-    privateKey: process.env.IMAGEKIT_PRIVATE_KEY, // Never expose this on frontend
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
-});
+let imagekit = null;
+if (process.env.IMAGEKIT_PUBLIC_KEY && process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT) {
+    imagekit = new ImageKit({
+        publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+        privateKey: process.env.IMAGEKIT_PRIVATE_KEY, // Never expose this on frontend
+        urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+    });
+} else {
+    console.warn("WARNING: ImageKit configuration is missing. Media upload functionality will be disabled.");
+}
+
 async function sendNewMessage(message, tenentId,type) {
   try {
     // Format message data

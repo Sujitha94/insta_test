@@ -156,7 +156,7 @@ const OrderManagement = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const API_BASE_URL = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api';
+  const API_BASE_URL = 'https://snaking-outhouse-oppose.ngrok-free.dev/api';
 
   const statusOptions = [
     'CREATED', 'PENDING', 'PROCESSING', 'PAID',
@@ -694,28 +694,28 @@ const OrderManagement = () => {
                         PRODUCTS ({order.products.reduce((acc, curr) => acc + (curr.quantity || 1), 0)})
                       </div>
                       <div
-                    className={`bg-gray-50 p-2 rounded border border-gray-100 w-full box-border
+                        className={`bg-gray-50 p-2 rounded border border-gray-100 w-full box-border
                       ${order.products.length > 2 ? 'max-h-[90px] overflow-y-auto' : ''}
                     `}
-                  >
-                    <div className="text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
-                      PRODUCTS ({order.products.reduce((acc, curr) => acc + (curr.quantity || 1), 0)})
-                    </div>
-
-                    {order.products.map((p, i) => (
-                      <div
-                        key={i}
-                        className="flex justify-between items-start text-xs py-1 border-b border-gray-100 last:border-0 gap-2 w-full"
                       >
-                        <span className="text-gray-800 flex-1 min-w-0 truncate">
-                          {p.product_name || p.sku || 'Unnamed Product'}
-                        </span>
-                        <span className="text-gray-500 font-medium flex-shrink-0">
-                          x{p.quantity || 1}
-                        </span>
+                        <div className="text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+                          PRODUCTS ({order.products.reduce((acc, curr) => acc + (curr.quantity || 1), 0)})
+                        </div>
+
+                        {order.products.map((p, i) => (
+                          <div
+                            key={i}
+                            className="flex justify-between items-start text-xs py-1 border-b border-gray-100 last:border-0 gap-2 w-full"
+                          >
+                            <span className="text-gray-800 flex-1 min-w-0 truncate">
+                              {p.product_name || p.sku || 'Unnamed Product'}
+                            </span>
+                            <span className="text-gray-500 font-medium flex-shrink-0">
+                              x{p.quantity || 1}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
                       {order.products.length > 3 && (
                         <div className="text-xs text-center text-orange-600 pt-1.5 font-medium border-t border-gray-100 mt-1.5">
                           +{order.products.length - 3} more items
@@ -795,11 +795,10 @@ const OrderManagement = () => {
                       <td className="px-4 py-4 align-top">
                         {order.products && order.products.length > 0 ? (
                           <div
-                            className={`space-y-2 pr-1 ${
-                              order.products.length > 2
+                            className={`space-y-2 pr-1 ${order.products.length > 2
                                 ? 'max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-gray-100'
                                 : ''
-                            }`}
+                              }`}
                           >
                             {order.products.map((product, idx) => (
                               <div key={idx} className="text-sm">
@@ -839,9 +838,8 @@ const OrderManagement = () => {
                             value={order.status}
                             onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                             disabled={updatingStatus === order.id}
-                            className={`w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                              updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
+                            className={`w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
                           >
                             {statusOptions.map(status => (
                               <option key={status} value={status}>{status}</option>
@@ -897,11 +895,10 @@ const OrderManagement = () => {
                   <div className="flex items-center gap-1">
                     {generatePageNumbers().map(pageNum => (
                       <button key={pageNum} onClick={() => handlePageClick(pageNum)} disabled={loading}
-                        className={`px-2.5 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-md transition-colors ${
-                          pageNum === currentPage
+                        className={`px-2.5 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-md transition-colors ${pageNum === currentPage
                             ? 'bg-orange-600 text-white'
                             : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}>
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}>
                         {pageNum}
                       </button>
                     ))}

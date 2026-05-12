@@ -49,7 +49,7 @@ export default function AccountProfile() {
       }
 
       const response = await axios.get(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/accountprofileroute/accountprofile',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/accountprofileroute/accountprofile',
         {
           headers: {
             'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export default function AccountProfile() {
       }
 
       const response = await axios.put(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/accountprofileroute/accountprofile',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/accountprofileroute/accountprofile',
         { name: editedName, email: editedEmail, tenentId },
         {
           headers: {

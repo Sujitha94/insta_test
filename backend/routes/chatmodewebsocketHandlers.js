@@ -17,9 +17,15 @@ router.use(cors({
 const OpenAI = require('openai');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const clients = new Map();
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY // This is the default and can be omitted
-});
+let openai = null;
+if (OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: OPENAI_API_KEY // This is the default and can be omitted
+  });
+} else {
+  console.warn("WARNING: OPENAI_API_KEY is missing in chatmodewebsocketHandlers. OpenAI functionality will be disabled.");
+}
+
 // Broadcast message to all clients with matching tenantId
 const broadcast = (tenantId, message) => {
   clients.forEach((ws, clientId) => {

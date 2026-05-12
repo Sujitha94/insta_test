@@ -100,7 +100,7 @@ const ProductInventory: React.FC = () => {
     try {
       const tenentId = localStorage.getItem('tenentid');
       const response = await axios.get(
-        'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventoryroute/inventory',
+        'https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventoryroute/inventory',
         { params: { tenentId } }
       );
       if (response.data && response.data.products) {
@@ -180,7 +180,7 @@ const ProductInventory: React.FC = () => {
     try {
       const tenentId = localStorage.getItem('tenentid');
       const status = calculateStatus(editingProduct.quantityInStock, editingProduct.threshold);
-      await axios.put(`https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventoryroute/inventory/${editingProduct.id}`, {
+      await axios.put(`https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventoryroute/inventory/${editingProduct.id}`, {
         id: editingProduct.id, tenentId,
         productName: editingProduct.productName, sku: editingProduct.sku,
         units: [{ unit: editingProduct.unitSize, price: editingProduct.price }],
@@ -207,7 +207,7 @@ const ProductInventory: React.FC = () => {
       if (result.isConfirmed) {
         try {
           const tenentId = localStorage.getItem('tenentid');
-          await axios.delete(`https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventoryroute/inventory/${id}`, { params: { tenentId } });
+          await axios.delete(`https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventoryroute/inventory/${id}`, { params: { tenentId } });
           const updated = products.filter(p => p.id !== id);
           setProducts(updated); applyFilters(searchTerm, activeFilter, updated);
           Swal.fire('Deleted!', 'Product removed from inventory.', 'success');
@@ -236,7 +236,7 @@ const ProductInventory: React.FC = () => {
           if (!product) return;
           const newQuantity = product.quantityInStock + quantity;
           const status = calculateStatus(newQuantity, product.threshold);
-          await axios.post(`https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api/productinventoryroute/inventory/${id}/restock`, {
+          await axios.post(`https://snaking-outhouse-oppose.ngrok-free.dev/api/productinventoryroute/inventory/${id}/restock`, {
             tenentId, addQuantity: quantity, newTotal: newQuantity,
             lastRestocked: new Date().toISOString().split('T')[0]
           });
@@ -360,8 +360,8 @@ const ProductInventory: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const configs: Record<string, { bg: string; color: string; border: string; dot: string }> = {
-      'In Stock':     { bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', color: '#065f46', border: '#6ee7b7', dot: '#10b981' },
-      'Low Stock':    { bg: 'linear-gradient(135deg,#fef3c7,#fde68a)', color: '#92400e', border: '#fbbf24', dot: '#f59e0b' },
+      'In Stock': { bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', color: '#065f46', border: '#6ee7b7', dot: '#10b981' },
+      'Low Stock': { bg: 'linear-gradient(135deg,#fef3c7,#fde68a)', color: '#92400e', border: '#fbbf24', dot: '#f59e0b' },
       'Out of Stock': { bg: 'linear-gradient(135deg,#fee2e2,#fecaca)', color: '#991b1b', border: '#f87171', dot: '#ef4444' },
     };
     const c = configs[status]; if (!c) return null;

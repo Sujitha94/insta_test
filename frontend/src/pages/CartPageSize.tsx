@@ -203,7 +203,7 @@ const CartPageSize: React.FC = () => {
   };
 
   const { sku, securityAccessToken, tenentId } = getQueryParams();
-  const appUrl = process.env.REACT_APP_API_URL || 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+  const appUrl = process.env.REACT_APP_API_URL || 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
   // --- ENHANCED STOCK VALIDATION FUNCTIONS ---
 
@@ -643,7 +643,7 @@ const CartPageSize: React.FC = () => {
       const axiosError = err as AxiosErrorType;
 
       if (axiosError.response?.status === 400 &&
-          axiosError.response?.data?.message?.includes('stock')) {
+        axiosError.response?.data?.message?.includes('stock')) {
         toast.error(axiosError.response.data.message, { position: "top-center" });
       } else {
         toast.error('Failed to update quantity.');
@@ -797,8 +797,8 @@ const CartPageSize: React.FC = () => {
       }
 
       if (!shippingDetails.name || !shippingDetails.address || !shippingDetails.pinCode ||
-          !shippingDetails.city || !shippingDetails.state || !shippingDetails.phoneNumber ||
-          !finalShippingPartner) {
+        !shippingDetails.city || !shippingDetails.state || !shippingDetails.phoneNumber ||
+        !finalShippingPartner) {
         setError('Please fill in all required fields and select a shipping partner');
         return;
       }
@@ -868,66 +868,66 @@ const CartPageSize: React.FC = () => {
     }
 
     if (selectedMethod) {
-        if (selectedMethod.type === 'FREE_SHIPPING') {
-            const min = selectedMethod.minAmount || 0;
-            if (subtotal >= min) return 0;
-            return 0;
+      if (selectedMethod.type === 'FREE_SHIPPING') {
+        const min = selectedMethod.minAmount || 0;
+        if (subtotal >= min) return 0;
+        return 0;
+      }
+
+      if (selectedMethod.type === 'COURIER_PARTNER') {
+        const basePrice = selectedMethod.defaultPrice || 0;
+        let additionalCost = 0;
+
+        if (selectedMethod.isPanIndia) {
+          return basePrice;
         }
 
-        if (selectedMethod.type === 'COURIER_PARTNER') {
-            const basePrice = selectedMethod.defaultPrice || 0;
-            let additionalCost = 0;
+        if (selectedMethod.useRegionWeight && selectedMethod.regionWeightConfigs && shippingDetails.state) {
+          const normalizedState = normalizeStateName(shippingDetails.state);
+          const config = selectedMethod.regionWeightConfigs.find(c =>
+            c.regions && c.regions.some(r => normalizeStateName(r) === normalizedState)
+          );
 
-            if (selectedMethod.isPanIndia) {
-                return basePrice;
+          if (config) {
+            const range = config.weightRanges.find(r => cartWeight >= r.minWeight && cartWeight <= r.maxWeight);
+            if (range) {
+              additionalCost = range.price;
+            } else {
+              const sortedRanges = [...config.weightRanges].sort((a, b) => a.minWeight - b.minWeight);
+              if (cartWeight > sortedRanges[sortedRanges.length - 1].maxWeight) {
+                additionalCost = sortedRanges[sortedRanges.length - 1].price;
+              } else {
+                additionalCost = sortedRanges[0].price;
+              }
             }
-
-            if (selectedMethod.useRegionWeight && selectedMethod.regionWeightConfigs && shippingDetails.state) {
-                 const normalizedState = normalizeStateName(shippingDetails.state);
-                 const config = selectedMethod.regionWeightConfigs.find(c =>
-                    c.regions && c.regions.some(r => normalizeStateName(r) === normalizedState)
-                 );
-
-                 if (config) {
-                     const range = config.weightRanges.find(r => cartWeight >= r.minWeight && cartWeight <= r.maxWeight);
-                     if (range) {
-                         additionalCost = range.price;
-                     } else {
-                         const sortedRanges = [...config.weightRanges].sort((a, b) => a.minWeight - b.minWeight);
-                         if (cartWeight > sortedRanges[sortedRanges.length - 1].maxWeight) {
-                             additionalCost = sortedRanges[sortedRanges.length - 1].price;
-                         } else {
-                             additionalCost = sortedRanges[0].price;
-                         }
-                     }
-                     return basePrice + additionalCost;
-                 }
-            }
-
-            if (selectedMethod.useWeight && selectedMethod.ratePerKg) {
-                 const chargeableWeight = Math.max(0.5, cartWeight);
-                 additionalCost = Math.ceil(chargeableWeight * selectedMethod.ratePerKg);
-                 return basePrice + additionalCost;
-            }
-
-            if (selectedMethod.regionRates && selectedMethod.regionRates.length > 0 && shippingDetails.state) {
-                 const normalizedState = normalizeStateName(shippingDetails.state);
-                 const rate = selectedMethod.regionRates.find(r =>
-                    r.regions && r.regions.some(reg => normalizeStateName(reg) === normalizedState)
-                 );
-                 if (rate) {
-                     additionalCost = rate.price;
-                     return basePrice + additionalCost;
-                 }
-            }
-
-            if (selectedMethod.fixedRate !== undefined && selectedMethod.fixedRate !== null) {
-                additionalCost = selectedMethod.fixedRate;
-                return basePrice + additionalCost;
-            }
-
-            return basePrice;
+            return basePrice + additionalCost;
+          }
         }
+
+        if (selectedMethod.useWeight && selectedMethod.ratePerKg) {
+          const chargeableWeight = Math.max(0.5, cartWeight);
+          additionalCost = Math.ceil(chargeableWeight * selectedMethod.ratePerKg);
+          return basePrice + additionalCost;
+        }
+
+        if (selectedMethod.regionRates && selectedMethod.regionRates.length > 0 && shippingDetails.state) {
+          const normalizedState = normalizeStateName(shippingDetails.state);
+          const rate = selectedMethod.regionRates.find(r =>
+            r.regions && r.regions.some(reg => normalizeStateName(reg) === normalizedState)
+          );
+          if (rate) {
+            additionalCost = rate.price;
+            return basePrice + additionalCost;
+          }
+        }
+
+        if (selectedMethod.fixedRate !== undefined && selectedMethod.fixedRate !== null) {
+          additionalCost = selectedMethod.fixedRate;
+          return basePrice + additionalCost;
+        }
+
+        return basePrice;
+      }
     }
 
     const currentPartner = selectedShippingPartner || shippingDetails.shippingPartner;
@@ -969,7 +969,7 @@ const CartPageSize: React.FC = () => {
       }
 
       let finalShippingPartner = selectedShippingPartner;
-      
+
       if (tenentId === TENANT_ID_ST_COURIER && !finalShippingPartner && shippingMethods.length > 0) {
         const freeShippingMethod = shippingMethods.find(method => method.type === 'FREE_SHIPPING');
         if (freeShippingMethod) {
@@ -1282,7 +1282,7 @@ const CartPageSize: React.FC = () => {
                   <span>Shipping</span>
                   <span>Calculated at checkout</span>
                 </div>
-                 {freeShippingThreshold && (() => {
+                {freeShippingThreshold && (() => {
                   const currentState = shippingDetails.state;
                   let stateRule = null;
                   if (currentState && freeShippingThreshold.stateThresholds?.length > 0) {
@@ -1431,9 +1431,8 @@ const CartPageSize: React.FC = () => {
                   name="name"
                   value={shippingDetails.name}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
-                    error && !shippingDetails.name ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${error && !shippingDetails.name ? 'border-red-500' : ''
+                    }`}
                   required
                 />
               </div>
@@ -1445,9 +1444,8 @@ const CartPageSize: React.FC = () => {
                   name="address"
                   value={shippingDetails.address}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
-                    error && !shippingDetails.address ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${error && !shippingDetails.address ? 'border-red-500' : ''
+                    }`}
                   required
                 />
               </div>
@@ -1459,9 +1457,8 @@ const CartPageSize: React.FC = () => {
                   name="pinCode"
                   value={shippingDetails.pinCode}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
-                    error && !shippingDetails.pinCode ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${error && !shippingDetails.pinCode ? 'border-red-500' : ''
+                    }`}
                   required
                   maxLength={6}
                   pattern="[0-9]{6}"
@@ -1475,9 +1472,8 @@ const CartPageSize: React.FC = () => {
                   name="city"
                   value={shippingDetails.city}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
-                    error && !shippingDetails.city ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${error && !shippingDetails.city ? 'border-red-500' : ''
+                    }`}
                   required
                 />
               </div>
@@ -1489,9 +1485,8 @@ const CartPageSize: React.FC = () => {
                   name="state"
                   value={shippingDetails.state}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
-                    error && !shippingDetails.state ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${error && !shippingDetails.state ? 'border-red-500' : ''
+                    }`}
                   required
                 />
               </div>
@@ -1514,9 +1509,8 @@ const CartPageSize: React.FC = () => {
                   name="phoneNumber"
                   value={shippingDetails.phoneNumber}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${
-                    error && !shippingDetails.phoneNumber ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 ${error && !shippingDetails.phoneNumber ? 'border-red-500' : ''
+                    }`}
                   required
                 />
               </div>
@@ -1550,7 +1544,7 @@ const CartPageSize: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  ) : (
+                ) : (
                   <>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                       <p className="text-xs text-gray-500 italic bg-gray-50 px-2 py-0.5 rounded-full">
@@ -1648,7 +1642,7 @@ const CartPageSize: React.FC = () => {
         {checkoutStep === 'terms' && (
           <div>
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
-            
+
             <div className="flex items-center mb-4">
               <button
                 onClick={() => setCheckoutStep('shipping')}
@@ -1693,7 +1687,7 @@ const CartPageSize: React.FC = () => {
         {checkoutStep === 'payment' && (
           <div>
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
-            
+
             <div className="flex items-center mb-4">
               <button
                 onClick={() => setCheckoutStep('terms')}
@@ -1938,11 +1932,10 @@ const CartPageSize: React.FC = () => {
                 <button
                   onClick={initiateRazorpayPayment}
                   disabled={stockValidationInProgress}
-                  className={`w-full ${
-                    stockValidationInProgress
+                  className={`w-full ${stockValidationInProgress
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-pink-600 hover:bg-pink-700'
-                  } text-white py-3 rounded-md text-lg transition-colors`}
+                    } text-white py-3 rounded-md text-lg transition-colors`}
                 >
                   {stockValidationInProgress ? (
                     <span className="flex items-center justify-center">

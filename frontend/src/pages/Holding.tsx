@@ -31,7 +31,7 @@ interface StatusBadgeProps {
 }
 
 // Configuration
-const API_BASE_URL = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev/api';
+const API_BASE_URL = 'https://snaking-outhouse-oppose.ngrok-free.dev/api';
 const ENDPOINTS = {
   ORDER_DETAILS: `${API_BASE_URL}/holdingroute/details`,
   UPDATE_HOLDING: `${API_BASE_URL}/holdingroute/update-holding`,
@@ -68,11 +68,10 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   const toast = document.createElement('div');
   toast.textContent = message;
-  toast.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 transition-opacity duration-300 ${
-    type === 'success' ? 'bg-green-500 text-white' :
-    type === 'error' ? 'bg-red-500 text-white' :
-    'text-white'
-  }`;
+  toast.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-500 text-white' :
+      type === 'error' ? 'bg-red-500 text-white' :
+        'text-white'
+    }`;
   if (type === 'info') toast.className += ' bg-orange-600';
   document.body.appendChild(toast);
   setTimeout(() => {
@@ -153,7 +152,7 @@ const HoldingPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             handleCloseScanner();
             setTimeout(() => triggerSearchFromScan(decodedText), 500);
           },
-          () => {}
+          () => { }
         );
 
         if (mounted) {
@@ -188,7 +187,7 @@ const HoldingPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
   const fetchOrderDetails = async (passedOrderNum?: string) => {
     const targetOrderNumber = passedOrderNum || orderNumber;
-    
+
     if (!targetOrderNumber.trim()) {
       showToast('Please enter an order number', 'error');
       return;
@@ -359,7 +358,7 @@ const HoldingPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
   return (
     <div className="flex flex-col w-full p-4 bg-gray-50 min-h-screen">
-      
+
       {/* --- SCANNER OVERLAY --- */}
       {scanning && (
         <div className="fixed inset-0 bg-black z-[70] flex flex-col items-center justify-center p-4">
@@ -411,7 +410,7 @@ const HoldingPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                     disabled={showForm || !tenentId}
                   />
                   {!showForm && tenentId && (
-                    <button 
+                    <button
                       type="button"
                       onClick={startScanning}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-orange-600 transition-colors"

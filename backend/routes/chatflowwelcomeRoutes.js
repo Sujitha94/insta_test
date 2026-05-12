@@ -11,18 +11,18 @@ const path = require("path");
 // Add the app URL configuration
 const appUrl =
   process.env.APP_URL ||
-  "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+  "https://snaking-outhouse-oppose.ngrok-free.dev";
 
 // Configure storage for media files
 const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     const uploadDir = "uploads/welcomepage";
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },

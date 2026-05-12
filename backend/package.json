@@ -2,9 +2,9 @@
   "name": "original-coast-clothing-instagram",
   "version": "1.0.0",
   "description": "A sample app to show how to build a great Instagram experience!",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "node server.js",
     "lint": "./node_modules/.bin/eslint ."
   },
   "dependencies": {

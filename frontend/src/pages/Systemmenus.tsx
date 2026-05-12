@@ -11,7 +11,7 @@ interface PayloadItem {
 
 // === SET YOUR BACKEND BASE URL HERE ===
 // Replace with your active ngrok URL or http://localhost:5000
-const API_BASE = 'https://inocencia-shiftiest-nonodorously.ngrok-free.dev';
+const API_BASE = 'https://snaking-outhouse-oppose.ngrok-free.dev';
 
 const InstaxBotSystemMenu: React.FC = () => {
   const [payloads, setPayloads] = useState<PayloadItem[]>([]);
@@ -208,9 +208,9 @@ const InstaxBotSystemMenu: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] py-8 px-4 w-full font-sans">
-      
+
       <div className="w-full max-w-2xl mx-auto">
-        
+
 
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
           <div className="p-6 space-y-6">

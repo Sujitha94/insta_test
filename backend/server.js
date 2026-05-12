@@ -37,20 +37,39 @@ let lastProcessedTime = 0;
 const fs = require("fs");
 global.tenantVectorDBs = {};
 const OpenAI = require("openai");
+const ImageKit = require("imagekit");
 const allowedOrigins = ["http://localhost:5173"];
 
 const session = require("express-session");
 // Load your API key from an environment variable or secret management service
 // (Don't hard-code your API key in your source code!)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+let imagekit = null;
+if (process.env.IMAGEKIT_PUBLIC_KEY && process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT) {
+    imagekit = new ImageKit({
+        publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+        privateKey: process.env.IMAGEKIT_PRIVATE_KEY, // Never expose this on frontend
+        urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+    });
+} else {
+    console.warn("WARNING: ImageKit configuration is missing. Media upload functionality will be disabled.");
+}
+
 const appUrl =
   process.env.APP_URL ||
-  "https://inocencia-shiftiest-nonodorously.ngrok-free.dev";
+  "https://snaking-outhouse-oppose.ngrok-free.dev";
 console.log("App URL:", appUrl);
 // Create an instance of the OpenAI class
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY, // This is the default and can be omitted
-}); // Ensure you have installed the OpenAI Node.js SDK
+let openai = null;
+if (OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: OPENAI_API_KEY, // This is the default and can be omitted
+  }); // Ensure you have installed the OpenAI Node.js SDK
+} else {
+  console.warn("WARNING: OPENAI_API_KEY is missing. OpenAI functionality will be disabled.");
+}
+
 //const franc = require('franc'); // Placeholder for language detection, use appropriate library
 
 const regex = /\w+/g;
@@ -71,7 +90,7 @@ app.use(bodyParser.json()); // Add this line to parse JSON data
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "https://inocencia-shiftiest-nonodorously.ngrok-free.dev", // Replace with your client URL
+    origin: "https://snaking-outhouse-oppose.ngrok-free.dev", // Replace with your client URL
     credentials: true,
   }),
 );
@@ -176,7 +195,7 @@ async function main() {
   //await GraphApi.setPageSubscriptions();
 
   // Listen for requests :)
-  var listener = app.listen(config.port, function() {
+  var listener = app.listen(config.port, function () {
     console.log(`The app is listening on port ${listener.address().port}`);
   });
   const wss = initializeWebSocket(listener);
