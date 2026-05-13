@@ -25,9 +25,9 @@ function InstagramStoryIcon({ size = 20, className }: { size?: number; className
     >
       <defs>
         <linearGradient id="igStoryGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#f09433" />
-          <stop offset="40%"  stopColor="#e6683c" />
-          <stop offset="70%"  stopColor="#dc2743" />
+          <stop offset="0%" stopColor="#f09433" />
+          <stop offset="40%" stopColor="#e6683c" />
+          <stop offset="70%" stopColor="#dc2743" />
           <stop offset="100%" stopColor="#bc1888" />
         </linearGradient>
       </defs>
@@ -854,107 +854,144 @@ const StoryCommentAutomation: React.FC<{ onClose: () => void }> = ({ onClose }) 
 // ── Main Hub Component ────────────────────────────────────────────
 type ActiveTab = 'comment' | 'story' | 'chat' | 'moderation';
 
+// ── Tab styles — matches Fulfillment page exactly ─────────────────
+const TAB_STYLE = `
+  /* Nav container: white, single hairline bottom border, zero shadow */
+  .ica-tab-nav {
+    background: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
+    box-shadow: none;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    width: 100%;
+  }
+  .ica-tab-nav__inner {
+    display: flex;
+    width: 100%;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0;
+  }
+  /* Each tab: icon stacked above label, 2px transparent bottom placeholder */
+  .ica-tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 6px 8px;
+    height: 64px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    color: #9ca3af;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  /* Hover: very subtle orange tint */
+  .ica-tab-btn:hover {
+    color: #EA580C;
+    background: rgba(234,88,12,0.04);
+  }
+  /* Active: orange text + clean 2px orange bottom line */
+  .ica-tab-btn.active {
+    color: #EA580C;
+    border-bottom: 2px solid #EA580C;
+    background: rgba(234,88,12,0.04);
+  }
+  .ica-tab-btn__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  /* Label: same weight as Fulfillment (medium, 12px) */
+  .ica-tab-btn__label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1;
+    color: inherit;
+  }
+  @media (max-width: 640px) {
+    .ica-tab-btn {
+      height: 58px;
+      gap: 3px;
+      padding: 8px 4px 6px;
+    }
+    .ica-tab-btn__label { font-size: 10px; }
+  }
+  @media (max-width: 380px) {
+    .ica-tab-btn__label { font-size: 9px; }
+  }
+`;
+
 const AllCommentsAutomation: React.FC = () => {
-  const [activeTab, setActiveTab]           = useState<ActiveTab>('comment');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('comment');
   const [showModeration, setShowModeration] = useState<boolean>(false);
 
   const TABS = [
-    { id: 'comment',    label: 'Comment Automation', icon: <MessageCircle size={18} /> },
-    { id: 'story',      label: 'Story Automation',   icon: <InstagramStoryIcon size={18} /> },
-    { id: 'chat',       label: 'Comment Chat',       icon: <MessageSquare size={18} /> },
-    ...(showModeration ? [{ id: 'moderation', label: 'Moderation', icon: <ShieldAlert size={18} /> }] : []),
+    { id: 'comment', label: 'Comment Automation', icon: <MessageCircle size={16} /> },
+    { id: 'story', label: 'Story Automation', icon: <InstagramStoryIcon size={16} /> },
+    { id: 'chat', label: 'Comment Chat', icon: <MessageSquare size={16} /> },
+    ...(showModeration ? [{ id: 'moderation', label: 'Moderation', icon: <ShieldAlert size={16} /> }] : []),
   ];
 
   // ── Check commentmoderation flag for this tenant ──────────────
   useEffect(() => {
-  const tenentId = localStorage.getItem('tenentid');
-  const isCommentModeration = localStorage.getItem('commentmoderation') !== 'false';
-
-  if (!tenentId) return;
-
-  console.log("Tenant ID:", tenentId);
-
-  setShowModeration(isCommentModeration);
-}, []);
+    const tenentId = localStorage.getItem('tenentid');
+    const isCommentModeration = localStorage.getItem('commentmoderation') !== 'false';
+    if (!tenentId) return;
+    console.log("Tenant ID:", tenentId);
+    setShowModeration(isCommentModeration);
+  }, []);
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#F8F9FB] p-3 sm:p-10 pb-24 sm:pb-10 font-sans selection:bg-orange-100">
-      <div className="w-full max-w-7xl mx-auto space-y-6 sm:space-y-10">
+    <>
+      {/* Inject scoped tab styles once */}
+      <style>{TAB_STYLE}</style>
 
-        {/* ── Top Tab Bar ── */}
-        <div className="bg-white border-b shadow-sm sticky top-0 z-10 -mx-3 sm:-mx-10 -mt-3 sm:-mt-10 mb-6">
-          <div className="flex w-full max-w-7xl mx-auto">
+      <div className="min-h-screen w-full overflow-x-hidden bg-[#F8F9FB] font-sans selection:bg-orange-100">
+
+        {/* ── Fulfillment-style Top Tab Bar ── */}
+        <div className="ica-tab-nav">
+          <div className="ica-tab-nav__inner">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as ActiveTab)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 3,
-                    padding: '12px 0',
-                    border: 'none',
-                    borderBottom: isActive ? '2.5px solid transparent' : '2.5px solid transparent',
-                    borderImage: isActive ? 'linear-gradient(to right, #F57F26, #D63031) 1' : 'none',
-                    background: isActive ? 'linear-gradient(to bottom, #fff7f0, #ffffff)' : 'transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    color: isActive ? '#F57F26' : '#9ca3af',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) (e.currentTarget as HTMLElement).style.color = '#F57F26';
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive) (e.currentTarget as HTMLElement).style.color = '#9ca3af';
-                  }}
+                  className={`ica-tab-btn${isActive ? ' active' : ''}`}
+                  aria-selected={isActive}
+                  role="tab"
                 >
-                  <span style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: isActive ? 'transparent' : 'inherit',
-                    ...(isActive ? {
-                      background: 'linear-gradient(to right, #F57F26, #D63031)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    } : {}),
-                  }}>
+                  <span className="ica-tab-btn__icon">
                     {React.cloneElement(tab.icon as React.ReactElement, {
-                      color: isActive ? '#F57F26' : '#9ca3af',
-                      size: 18,
+                      color: isActive ? '#EA580C' : '#adb5bd',
+                      size: 16,
                     })}
                   </span>
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: 0.3,
-                    background: isActive ? 'linear-gradient(to right, #F57F26, #D63031)' : 'none',
-                    WebkitBackgroundClip: isActive ? 'text' : 'unset',
-                    WebkitTextFillColor: isActive ? 'transparent' : 'inherit',
-                    color: isActive ? 'transparent' : '#9ca3af',
-                  }}>
-                    {tab.label}
-                  </span>
+                  <span className="ica-tab-btn__label">{tab.label}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* ── Panels ── */}
-        <div className="pt-4 transition-all duration-500">
+        {/* ── Page Content ── */}
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-10 py-6 pb-24 sm:pb-10">
 
-          {activeTab === 'comment' && <InstagramCommentAutomation onClose={() => {}} />}
+          {activeTab === 'comment' && <InstagramCommentAutomation onClose={() => { }} />}
 
-          {activeTab === 'story' && <StoryCommentAutomation onClose={() => {}} />}
+          {activeTab === 'story' && <StoryCommentAutomation onClose={() => { }} />}
 
           {activeTab === 'chat' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden md:overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h2 className="text-sm font-bold text-slate-900">Comment Chat History</h2>
               </div>
@@ -986,7 +1023,7 @@ const AllCommentsAutomation: React.FC = () => {
 
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
